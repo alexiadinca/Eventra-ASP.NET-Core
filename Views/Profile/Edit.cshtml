@@ -1,0 +1,51 @@
+﻿@model Eventra.Models.ViewModels.EditProfileViewModel
+@{
+    ViewData["Title"] = "Edit Profile";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styleeditprofile.css" asp-append-version="true" />
+}
+
+<main class="edit-page">
+    <div class="container edit-wrapper">
+        <section class="edit-left">
+            <p class="eyebrow">Manage your personal information</p>
+            <h1>Edit profile</h1>
+            <p class="intro-text">Update your personal details and keep your Eventra attendee profile accurate.</p>
+        </section>
+
+        <section class="edit-card">
+            <h2>Edit Information</h2>
+            <p class="card-subtitle">Update your profile details below</p>
+
+            <form asp-action="Edit" method="post" class="edit-form">
+                <div class="form-row">
+                    <div class="input-group">
+                        <label asp-for="FirstName"></label>
+                        <input asp-for="FirstName" />
+                    </div>
+                    <div class="input-group">
+                        <label asp-for="LastName"></label>
+                        <input asp-for="LastName" />
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label asp-for="Email"></label>
+                    <input asp-for="Email" />
+                </div>
+
+                <div class="input-group">
+                    <label asp-for="PhoneNumber"></label>
+                    <input asp-for="PhoneNumber" />
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="save-btn">Save Changes</button>
+                    <a asp-controller="Profile" asp-action="Index" class="cancel-btn">Cancel</a>
+                </div>
+            </form>
+        </section>
+    </div>
+</main>

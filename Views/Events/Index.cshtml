@@ -1,0 +1,47 @@
+﻿@model IEnumerable<Eventra.Models.Event>
+@{
+    ViewData["Title"] = "Events";
+    var categories = ViewBag.Categories as List<Eventra.Models.Category>;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styleevents.css" asp-append-version="true" />
+}
+
+<main class="events-page">
+    <div class="container">
+        <section class="events-hero">
+            <p class="eyebrow">Discover what’s happening</p>
+            <h1>Browse All Events</h1>
+            <p class="intro-text">
+                Explore conferences, tastings, exhibitions, openings and special curated experiences from Eventra.
+            </p>
+        </section>
+
+        <section class="filter-bar">
+            <a asp-action="Index" class="event-btn">All</a>
+            @if (categories != null)
+            {
+                @foreach (var category in categories)
+                {
+                    <a asp-action="Index" asp-route-categoryId="@category.Id" class="event-btn">@category.Name</a>
+                }
+            }
+        </section>
+
+        <section class="events-grid">
+            @foreach (var ev in Model)
+            {
+                <article class="event-card">
+                    <img src="@(string.IsNullOrEmpty(ev.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(ev.ImagePath))" alt="@ev.Title">
+                    <div class="event-card-content">
+                        <h2>@ev.Title</h2>
+                        <p class="meta">@ev.City • @ev.EventDate.ToString("dd MMMM yyyy") • @ev.StartTime</p>
+                        <p class="desc">@(ev.Description.Length > 110 ? ev.Description.Substring(0, 110) + "..." : ev.Description)</p>
+                        <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="event-btn">View Details</a>
+                    </div>
+                </article>
+            }
+        </section>
+    </div>
+</main>

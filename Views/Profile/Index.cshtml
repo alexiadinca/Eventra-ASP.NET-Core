@@ -1,0 +1,254 @@
+﻿@model Eventra.Models.User
+@{
+    ViewData["Title"] = "Profile";
+    var notifications = ViewBag.Notifications as List<Eventra.Models.Notification>;
+    var futureRegistrations = ViewBag.FutureRegistrations as List<Eventra.Models.EventRegistration>;
+    var waitingList = ViewBag.WaitingList as List<Eventra.Models.WaitingListEntry>;
+    var pastRegistrations = ViewBag.PastRegistrations as List<Eventra.Models.EventRegistration>;
+    var organizedEvents = ViewBag.OrganizedEvents as List<Eventra.Models.Event>;
+    var organizerReviews = ViewBag.OrganizerReviews as List<Eventra.Models.Review>;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styleprofile.css" asp-append-version="true" />
+}
+
+<main class="profile-page">
+    <div class="container">
+        <section class="profile-header">
+            <h1>Profile</h1>
+            <p>Your Eventra account overview, personal QR access and registered events.</p>
+        </section>
+
+        <section class="profile-top">
+            <div class="profile-card">
+                <div class="avatar-wrapper">
+                    <div class="avatar-circle">
+                        <div class="avatar-head"></div>
+                        <div class="avatar-body"></div>
+                    </div>
+                </div>
+
+                <div class="profile-info">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="label">First Name</span>
+                            <p>@Model.FirstName</p>
+                        </div>
+
+                        <div class="info-item">
+                            <span class="label">Last Name</span>
+                            <p>@Model.LastName</p>
+                        </div>
+
+                        <div class="info-item">
+                            <span class="label">Phone Number</span>
+                            <p>@Model.PhoneNumber</p>
+                        </div>
+
+                        <div class="info-item">
+                            <span class="label">Email</span>
+                            <p>@Model.Email</p>
+                        </div>
+
+                        <div class="info-item">
+                            <span class="label">Role</span>
+                            <p>@Model.Role</p>
+                        </div>
+
+                        <div class="info-item">
+                            <span class="label">Username</span>
+                            <p>@Model.Username</p>
+                        </div>
+
+                    </div>
+
+                    <div class="profile-actions">
+                        <a asp-controller="Profile" asp-action="Edit" class="edit-link-btn">Edit Profile</a>
+                        <button class="secondary">Download QR</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="qr-card">
+                <h2>Your guest QR Code</h2>
+                <div class="qr-box">
+                    <img src="@(string.IsNullOrEmpty(Model.QrCodePath) ? Url.Content("~/images/QrCode.png") : Url.Content(Model.QrCodePath))" alt="Guest QR code">
+                </div>
+                <p class="qr-note">Scan at entrance!</p>
+                <p class="qr-desc">This QR code is linked to your registrations.</p>
+            </div>
+        </section>
+
+        <section class="profile-section">
+            <div class="section-title">
+                <h2>Notifications</h2>
+            </div>
+
+            <div class="notification-list">
+                @if (notifications != null && notifications.Any())
+                {
+                    @foreach (var notification in notifications)
+                    {
+                        <div class="notification-card">
+                            <h3>@notification.Title</h3>
+                            <p>@notification.Message</p>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="notification-card">
+                        <h3>No notifications yet</h3>
+                        <p>You do not have any notifications yet.</p>
+                    </div>
+                }
+            </div>
+        </section>
+
+        @if (Model.Role == "Organizer")
+        {
+            <section class="profile-section">
+                <div class="section-title">
+                    <h2>Your Organized Events</h2>
+                </div>
+
+                <div class="past-events-grid">
+                    @if (organizedEvents != null && organizedEvents.Any())
+                    {
+                        @foreach (var ev in organizedEvents)
+                        {
+                            <div class="past-card">
+                                <img src="@(string.IsNullOrEmpty(ev.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(ev.ImagePath))" alt="@ev.Title">
+                                <h3>@ev.Title</h3>
+                                <p>@ev.EventDate.ToString("dd MMMM yyyy") • @ev.City</p>
+                                <p>
+                                    <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="event-btn">View Details</a>
+                                </p>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="waiting-card">
+                            <h3>No events created yet</h3>
+                            <p>You have not published any events yet.</p>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <section class="profile-section">
+                <div class="section-title">
+                    <h2>Reviews About You</h2>
+                </div>
+
+                <div class="notification-list">
+                    @if (organizerReviews != null && organizerReviews.Any())
+                    {
+                        @foreach (var review in organizerReviews)
+                        {
+                            <div class="notification-card">
+                                <h3>@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</h3>
+                                <p>“@review.Comment”</p>
+                                <p><strong>@review.User.FirstName @review.User.LastName</strong></p>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="notification-card">
+                            <h3>No reviews yet</h3>
+                            <p>You have not received any reviews yet.</p>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+        else
+        {
+            <section class="events-overview">
+                <div class="events-column">
+                    <div class="section-title">
+                        <h2>Future Events</h2>
+                    </div>
+
+                    @if (futureRegistrations != null && futureRegistrations.Any())
+                    {
+                        @foreach (var registration in futureRegistrations)
+                        {
+                            <div class="mini-event-card">
+                                <img src="@(string.IsNullOrEmpty(registration.Event.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(registration.Event.ImagePath))" alt="@registration.Event.Title">
+                                <div>
+                                    <h3>@registration.Event.Title</h3>
+                                    <p>@registration.Event.EventDate.ToString("dd MMMM yyyy") • @registration.Event.City • @registration.Event.StartTime</p>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="waiting-card">
+                            <h3>No future events</h3>
+                            <p>You are not registered for any upcoming event.</p>
+                        </div>
+                    }
+                </div>
+
+                <div class="events-column">
+                    <div class="section-title">
+                        <h2>Waiting List</h2>
+                    </div>
+
+                    @if (waitingList != null && waitingList.Any())
+                    {
+                        @foreach (var item in waitingList)
+                        {
+                            <div class="waiting-card">
+                                <h3>@item.Event.Title</h3>
+                                <p>You are currently on the waiting list. Position: @item.Position.</p>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="waiting-card">
+                            <h3>No waiting list entries</h3>
+                            <p>You are not currently on any waiting list.</p>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <section class="profile-section">
+                <div class="section-title">
+                    <h2>Past Events</h2>
+                </div>
+
+                <div class="past-events-grid">
+                    @if (pastRegistrations != null && pastRegistrations.Any())
+                    {
+                        @foreach (var registration in pastRegistrations)
+                        {
+                            <div class="past-card">
+                                <img src="@(string.IsNullOrEmpty(registration.Event.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(registration.Event.ImagePath))" alt="@registration.Event.Title">
+                                <h3>@registration.Event.Title</h3>
+                                <p>Attended on @registration.Event.EventDate.ToString("dd MMMM yyyy")</p>
+                                <p>
+                                    <a asp-controller="Reviews" asp-action="Create" asp-route-eventId="@registration.Event.Id" class="event-btn">Leave a Review</a>
+                                </p>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="waiting-card">
+                            <h3>No past events yet</h3>
+                            <p>You have not attended any events yet.</p>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+    </div>
+</main>

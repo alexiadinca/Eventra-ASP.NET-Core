@@ -1,0 +1,158 @@
+﻿@model Eventra.Models.ViewModels.EventDetailsViewModel
+
+@{
+    ViewData["Title"] = "Event Details";
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <script>
+        alert('@TempData["SuccessMessage"]');
+    </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styleeventdetails.css" asp-append-version="true" />
+}
+
+<main class="details-page">
+    <div class="container">
+        <section class="details-layout">
+            <div class="poster-column">
+                <img src="@(string.IsNullOrEmpty(Model.Event.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(Model.Event.ImagePath))"
+                     alt="@Model.Event.Title" />
+            </div>
+
+            <div class="info-column">
+                <h1>@Model.Event.Title</h1>
+
+                <div class="details-list">
+                    <p><strong>Date:</strong> @Model.Event.EventDate.ToString("dd MMMM yyyy")</p>
+                    <p><strong>Hour:</strong> @Model.Event.StartTime.ToString(@"hh\:mm")</p>
+
+                    @if (Model.Event.EndTime.HasValue)
+                    {
+                        <p><strong>End Hour:</strong> @Model.Event.EndTime.Value.ToString(@"hh\:mm")</p>
+                    }
+
+                    <p><strong>City:</strong> @Model.Event.City</p>
+                    <p><strong>Location:</strong> @Model.Event.Location</p>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Event.AddressLine))
+                    {
+                        <p><strong>Address:</strong> @Model.Event.AddressLine</p>
+                    }
+
+                    <p>
+                        <strong>Organizer:</strong>
+                        @(string.IsNullOrWhiteSpace(Model.Event.OrganizerDisplayName)
+                                                ? $"{Model.Event.Organizer.FirstName} {Model.Event.Organizer.LastName}"
+                                                : Model.Event.OrganizerDisplayName)
+                    </p>
+
+                    <p><strong>Event Type:</strong> @Model.Event.Category.Name</p>
+
+                    <p>
+                        <strong>Access:</strong>
+                        @(Model.Event.IsFreeEntry
+                                                ? "Free Entrance"
+                                                : $"{Model.Event.Price} {Model.Event.Currency}")
+                    </p>
+
+                    <p><strong>Capacity:</strong> @Model.Event.Capacity</p>
+                    <p><strong>Available Seats:</strong> @Model.Event.AvailableSeats</p>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Event.SupportEmail) || !string.IsNullOrWhiteSpace(Model.Event.SupportPhone))
+                    {
+                        <p>
+                            <strong>Support:</strong>
+                            @Model.Event.SupportEmail
+                            @if (!string.IsNullOrWhiteSpace(Model.Event.SupportEmail) && !string.IsNullOrWhiteSpace(Model.Event.SupportPhone))
+                            {
+                                <span> / </span>
+                            }
+                            @Model.Event.SupportPhone
+                        </p>
+                    }
+                </div>
+
+                <div class="description-box">
+                    <h2>Description</h2>
+                    <p>@Model.Event.Description</p>
+                </div>
+
+                <div class="cta-area">
+                    <button class="join-btn">Count me in!</button>
+                    <p class="seats-text">@Model.Event.AvailableSeats seats left</p>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+
+<section class="similar-events-section">
+    <div class="container">
+        <div class="section-heading">
+            <p class="section-label">What people say</p>
+            <h2>Organizer Reviews</h2>
+        </div>
+
+        <div class="notification-list">
+            @if (Model.OrganizerReviews != null && Model.OrganizerReviews.Any())
+            {
+                @foreach (var review in Model.OrganizerReviews)
+                {
+                    <div class="notification-card">
+                        <h3>@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</h3>
+                        <p>“@review.Comment”</p>
+                        <p><strong>@review.User.FirstName @review.User.LastName</strong></p>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="notification-card">
+                    <h3>No reviews yet</h3>
+                    <p>This organizer does not have reviews yet.</p>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="similar-events-section">
+    <div class="container">
+        <div class="section-heading">
+            <p class="section-label">You may also like</p>
+            <h2>Similar Events</h2>
+        </div>
+
+        <div class="similar-events-grid">
+            @if (Model.SimilarEvents != null && Model.SimilarEvents.Any())
+            {
+                @foreach (var ev in Model.SimilarEvents)
+                {
+                    <article class="similar-card">
+                        <img src="@(string.IsNullOrEmpty(ev.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(ev.ImagePath))"
+                             alt="@ev.Title" />
+
+                        <div class="similar-card-content">
+                            <h3>@ev.Title</h3>
+                            <p class="similar-meta">@ev.City • @ev.EventDate.ToString("dd MMM yyyy")</p>
+                            <p class="similar-desc">
+                                @(ev.Description.Length > 90 ? ev.Description.Substring(0, 90) + "..." : ev.Description)
+                            </p>
+                            <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="similar-btn">
+                                View Details
+                            </a>
+                        </div>
+                    </article>
+                }
+            }
+            else
+            {
+                <p>No similar events available right now.</p>
+            }
+        </div>
+    </div>
+</section>

@@ -1,0 +1,225 @@
+﻿@model Eventra.Models.Event
+@{
+    ViewData["Title"] = "Create Event";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/stylecreateevent.css" asp-append-version="true" />
+}
+
+<main class="create-page">
+    <div class="container">
+        <section class="create-hero">
+            <p class="eyebrow">FOR ORGANIZERS AND CREATORS</p>
+            <h1>Create a New Event</h1>
+            <p class="intro-text">
+                Publish elegant experiences on Eventra and let people discover your conference, exhibition,
+                workshop, market, tasting, launch or special event.
+            </p>
+        </section>
+
+        <section class="create-layout">
+            <div class="create-info-card">
+                <h2>What makes a great event page?</h2>
+
+                <ul>
+                    <li>Choose a clear and memorable title.</li>
+                    <li>Add the correct date, hour and location.</li>
+                    <li>Write a short, but attractive description.</li>
+                    <li>Upload a visually strong poster or banner.</li>
+                    <li>Set capacity and access details clearly.</li>
+                </ul>
+
+                <div class="tips-box">
+                    <h3>Organizer Tips</h3>
+                    <p>
+                        Clean event descriptions and strong visuals help users decide faster.
+                        A complete event page feels more trustworthy and professional.
+                    </p>
+                </div>
+            </div>
+
+            <div class="create-form-card">
+                <h2>Event Details</h2>
+                <p class="form-subtitle">Fill in the details below to publish your event.</p>
+
+                @if (ViewBag.ErrorMessage != null)
+                {
+                    <div class="alert alert-danger" style="margin-bottom:15px; white-space:pre-wrap;">
+                        @ViewBag.ErrorMessage
+                    </div>
+                }
+
+                <form asp-action="Create" method="post" enctype="multipart/form-data" class="create-form">
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="All" class="text-danger"></div>
+
+                    <div class="input-group full-width">
+                        <label asp-for="Title">Event Title</label>
+                        <input asp-for="Title" placeholder="Ex: Business Conference 2026" />
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label asp-for="OrganizerDisplayName">Organizer Name</label>
+                            <input asp-for="OrganizerDisplayName" placeholder="Ex: Eventra Studio" />
+                            <span asp-validation-for="OrganizerDisplayName" class="text-danger"></span>
+                        </div>
+
+                        <div class="input-group">
+                            <label asp-for="CategoryId">Event Type</label>
+                            <select asp-for="CategoryId" asp-items="ViewBag.Categories">
+                                <option value="0">Select type</option>
+                            </select>
+                            <span asp-validation-for="CategoryId" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label asp-for="EventDate">Date</label>
+                            <input asp-for="EventDate" type="date" />
+                            <span asp-validation-for="EventDate" class="text-danger"></span>
+                        </div>
+
+                        <div class="input-group">
+                            <label asp-for="StartTime">Hour</label>
+                            <input asp-for="StartTime" type="time" />
+                            <span asp-validation-for="StartTime" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label asp-for="EndTime">End Hour</label>
+                            <input asp-for="EndTime" type="time" />
+                            <span asp-validation-for="EndTime" class="text-danger"></span>
+                        </div>
+
+                        <div class="input-group">
+                            <label asp-for="City">City</label>
+                            <input asp-for="City" placeholder="Ex: Bucharest" />
+                            <span asp-validation-for="City" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label asp-for="Location">Location</label>
+                            <input asp-for="Location" placeholder="Ex: Hilton Garden Inn" />
+                            <span asp-validation-for="Location" class="text-danger"></span>
+                        </div>
+
+                        <div class="input-group">
+                            <label asp-for="AddressLine">Address</label>
+                            <input asp-for="AddressLine" placeholder="Full address" />
+                            <span asp-validation-for="AddressLine" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label asp-for="Capacity">Capacity</label>
+                            <input asp-for="Capacity" type="number" min="1" placeholder="Ex: 100" />
+                            <span asp-validation-for="Capacity" class="text-danger"></span>
+                        </div>
+
+                        <div class="input-group">
+                            <label asp-for="Price">Ticket Price</label>
+                            <input asp-for="Price" id="Price" type="number" min="0" step="0.01" placeholder="Ex: 50" />
+                            <span asp-validation-for="Price" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label asp-for="Currency">Currency</label>
+                            <select asp-for="Currency" id="Currency">
+                                <option value="RON">RON</option>
+                                <option value="EUR">EUR</option>
+                                <option value="USD">USD</option>
+                            </select>
+                            <span asp-validation-for="Currency" class="text-danger"></span>
+                        </div>
+
+                        <div class="input-group">
+                            <label asp-for="SupportEmail">Support Email</label>
+                            <input asp-for="SupportEmail" placeholder="support@example.com" />
+                            <span asp-validation-for="SupportEmail" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="input-group full-width">
+                        <label asp-for="SupportPhone">Support Phone</label>
+                        <input asp-for="SupportPhone" placeholder="+40..." />
+                        <span asp-validation-for="SupportPhone" class="text-danger"></span>
+                    </div>
+
+                    <div class="input-group full-width">
+                        <label asp-for="Description">Event Description</label>
+                        <textarea asp-for="Description" rows="6" placeholder="Describe the event, what guests can expect, who it is for, and why they should attend."></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div class="input-group full-width">
+                        <label>Event Poster / Banner</label>
+                        <input type="file" name="imageFile" accept=".jpg,.jpeg,.png,.webp,image/*" />
+                        <span asp-validation-for="ImagePath" class="text-danger"></span>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label>
+                            <input asp-for="IsFreeEntry" id="free-entry" />
+                            <span>This event has free entry</span>
+                        </label>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" required />
+                            <span>I confirm that the event details are correct and ready to be published.</span>
+                        </label>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="publish-btn">Publish Event</button>
+                        <button type="reset" class="secondary-btn">Reset</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+</main>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const freeEntryCheckbox = document.getElementById("free-entry");
+            const priceInput = document.getElementById("Price");
+            const currencyInput = document.getElementById("Currency");
+
+            function updatePriceState() {
+                if (!freeEntryCheckbox || !priceInput) return;
+
+                if (freeEntryCheckbox.checked) {
+                    priceInput.value = 0;
+                    priceInput.readOnly = true;
+
+                    if (currencyInput) {
+                        currencyInput.value = "RON";
+                    }
+                } else {
+                    priceInput.readOnly = false;
+                }
+            }
+
+            if (freeEntryCheckbox) {
+                freeEntryCheckbox.addEventListener("change", updatePriceState);
+                updatePriceState();
+            }
+        });
+    </script>
+}

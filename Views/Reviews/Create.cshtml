@@ -1,0 +1,58 @@
+﻿@model Eventra.Models.ViewModels.SubmitReviewViewModel
+@{
+    ViewData["Title"] = "Leave a Review";
+    var ev = ViewBag.Event as Eventra.Models.Event;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styleregister.css" asp-append-version="true" />
+}
+
+<main class="register-page">
+    <div class="container register-wrapper">
+        <section class="register-left">
+            <p class="eyebrow">Share your experience</p>
+            <h1>Leave a review</h1>
+            <p class="intro-text">
+                @if (ev != null)
+                {
+                    <span>You attended <strong>@ev.Title</strong> organized by <strong>@ev.Organizer.FirstName @ev.Organizer.LastName</strong>. Tell others how it was.</span>
+                }
+            </p>
+        </section>
+
+        <section class="register-card">
+            <h2>Your Review</h2>
+            <p class="card-subtitle">Rate the event and share your feedback</p>
+
+            <form asp-action="Create" method="post" class="register-form">
+                <input asp-for="EventId" type="hidden" />
+
+                <div class="input-group">
+                    <label asp-for="Rating">Rating</label>
+                    <select asp-for="Rating">
+                        <option value="">Select rating</option>
+                        <option value="5">5 - Excellent</option>
+                        <option value="4">4 - Very good</option>
+                        <option value="3">3 - Good</option>
+                        <option value="2">2 - Fair</option>
+                        <option value="1">1 - Poor</option>
+                    </select>
+                    <span asp-validation-for="Rating" class="text-danger"></span>
+                </div>
+
+                <div class="input-group">
+                    <label asp-for="Comment">Comment</label>
+                    <textarea asp-for="Comment" rows="6"></textarea>
+                    <span asp-validation-for="Comment" class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="register-btn">Submit Review</button>
+            </form>
+        </section>
+    </div>
+</main>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

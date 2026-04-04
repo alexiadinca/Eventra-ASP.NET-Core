@@ -1,0 +1,102 @@
+﻿@model Eventra.Models.ViewModels.HomeViewModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/style.css" asp-append-version="true" />
+}
+
+<section class="hero">
+    <div class="container hero-content">
+        <p class="eyebrow">Discover curated experiences across Romania</p>
+        <h1>Find awesome events near you</h1>
+        <p class="hero-text">
+            Concerts, parties, workshops, cooking classes, conferences, exhibitions and more -
+            all in one elegant place.
+        </p>
+
+        <form class="search-bar" method="get" asp-controller="Events" asp-action="Index">
+            <input type="text" name="city" placeholder="Search by city, event type, organizer..." />
+            <button type="submit" aria-label="Search">
+                <span>🔍</span>
+            </button>
+        </form>
+
+        <div class="quick-filters">
+            <button type="button">Today</button>
+            <button type="button">Tomorrow</button>
+            <button type="button">Next Week</button>
+            <button type="button">Next Month</button>
+            <button type="button">Bucharest</button>
+            <button type="button">Craiova</button>
+            <button type="button">Free Entry</button>
+            <button type="button">Pay at Door</button>
+        </div>
+    </div>
+</section>
+
+<section class="section-title-bar">
+    <div class="container">
+        <h2>Featured Events</h2>
+    </div>
+</section>
+
+<section class="featured-events">
+    <div class="container">
+        <div class="events-grid">
+            @foreach (var ev in Model.FeaturedEvents)
+            {
+                <article class="event-card">
+                    <img src="@(string.IsNullOrEmpty(ev.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(ev.ImagePath))" alt="@ev.Title poster">
+                    <div class="event-info">
+                        <h3>@ev.Title</h3>
+                        <p class="event-meta">
+                            @ev.City • @ev.EventDate.ToString("MMMM dd, yyyy") • @(ev.IsFreeEntry ? "Free Entry" : "Paid")
+                        </p>
+                        <p class="event-desc">
+                            @(ev.Description.Length > 100 ? ev.Description.Substring(0, 100) + "..." : ev.Description)
+                        </p>
+                        <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="details-btn">View Details</a>
+                    </div>
+                </article>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="highlights">
+    <div class="container highlight-wrapper">
+        <div class="highlight-box">
+            <h3>Popular Right Now</h3>
+            <p>AI events, exhibitions and boutique lifestyle markets are trending this week.</p>
+        </div>
+        <div class="highlight-box">
+            <h3>Upcoming This Month</h3>
+            <p>Discover curated social, business and art experiences in Bucharest and Craiova.</p>
+        </div>
+        <div class="highlight-box">
+            <h3>Organizers You’ll Love</h3>
+            <p>Trusted event hosts with elegant branding, high ratings and memorable experiences.</p>
+        </div>
+    </div>
+</section>
+
+<section class="section-title-bar">
+    <div class="container">
+        <h2>Ratings from customers</h2>
+    </div>
+</section>
+
+<section class="reviews">
+    <div class="container review-grid">
+        @foreach (var review in Model.LatestReviews)
+        {
+            <article class="review-card">
+                <div class="stars">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</div>
+                <p>“@review.Comment”</p>
+                <h4>— @review.User.FirstName @review.User.LastName</h4>
+            </article>
+        }
+    </div>
+</section>

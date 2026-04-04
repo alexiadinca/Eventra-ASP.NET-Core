@@ -1,0 +1,99 @@
+﻿@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Eventra</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @RenderSection("Styles", required: false)
+</head>
+<body class="layout-body">
+    @{
+        var firstName = HttpContextAccessor.HttpContext?.Session.GetString("FirstName");
+        var role = HttpContextAccessor.HttpContext?.Session.GetString("Role");
+    }
+
+    <header class="site-header">
+        <div class="container nav-wrapper">
+            <a asp-controller="Home" asp-action="Index" class="brand">Eventra</a>
+
+            <nav class="main-nav">
+                <a asp-controller="Events" asp-action="Index">Events</a>
+                <a asp-controller="Home" asp-action="About">About Us</a>
+
+                @if (string.IsNullOrEmpty(firstName))
+                {
+                    <a asp-controller="Account" asp-action="SignIn">Sign In</a>
+                    <a asp-controller="Account" asp-action="Register" class="nav-btn">Register</a>
+                }
+                else
+                {
+                    @if (role == "Organizer")
+                    {
+                        <a asp-controller="Events" asp-action="Create">Create Event</a>
+                    }
+
+                    <a asp-controller="Profile" asp-action="Index">Profile</a>
+
+                    <span class="nav-user">Hello, @firstName</span>
+
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form">
+                        <button type="submit" class="logout-btn">Logout</button>
+                    </form>
+                }
+            </nav>
+        </div>
+    </header>
+
+    <main class="page-content">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-grid">
+            <div class="footer-brand">
+                <img src="~/images/LogoEventra.png" alt="Eventra logo">
+                <p>Discover events near you.</p>
+            </div>
+
+            <div class="footer-links">
+                <h4>Quick Links</h4>
+                <a asp-controller="Home" asp-action="Index">Home</a>
+                <a asp-controller="Events" asp-action="Index">Events</a>
+                <a asp-controller="Events" asp-action="Create">Create Event</a>
+                <a asp-controller="Profile" asp-action="Index">Profile</a>
+            </div>
+
+            <div class="footer-contact">
+                <h4>Contact Us</h4>
+                <p>Email: contact@eventra.com</p>
+                <p>Phone: +40 700 123 456</p>
+                <p>Romania</p>
+            </div>
+
+            <div class="footer-newsletter">
+                <h4>Newsletter</h4>
+                <p>Get updates about trending events, new organizers and upcoming experiences.</p>
+                <form class="newsletter-form">
+                    <input type="email" placeholder="Your email address">
+                    <button type="submit">Subscribe</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="container footer-bottom">
+            <p>© Copyright 2026. All rights reserved — Eventra RO</p>
+        </div>
+    </footer>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
