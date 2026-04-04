@@ -25,8 +25,6 @@ Then:
 
 ## Testing
 
-## Testing
-
 You can test the platform using one of the demo accounts seeded in `DbSeeder`.  
 The account credentials are also available in a `.txt` file included in the project repository.
 
