@@ -1,6 +1,6 @@
 # Eventra
 
-Eventra is a database-driven ASP.NET Core web application for discovering, creating, and managing events. Users can browse events, manage their profiles, and access personalized features, while organizers can create and publish their own events.
+Eventra is a database-driven ASP.NET Core web application for discovering, creating and managing events. Users can browse events, manage their profiles and access personalized features, while organizers can create and publish their own events.
 
 ## Tech Stack
 
@@ -26,7 +26,7 @@ Then:
 ## Testing
 
 You can test the platform using one of the demo accounts seeded in `DbSeeder`.  
-The account credentials are also available in a `.txt` file included in the project repository.
+The account credentials are also available in `Accounts.txt` file included in the project repository.
 
 You can also create your own account and add events to your local database for a complete testing experience.
 
