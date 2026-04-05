@@ -17,11 +17,15 @@ Eventra is a database-driven ASP.NET Core web application for discovering, creat
 To run this project locally, make sure you have:
 - .NET installed
 - Visual Studio with the ASP.NET and web development workload
+- Microsoft SQL Server Management Studio (SSMS) installed
+- Microsoft SQL Server installed and configured locally
 
 Then:
 1. Clone the repository
 2. Open the solution in Visual Studio
-3. Run the application
+3. Update the database connection string if needed
+4. Run the database migrations
+5. Run the application
 
 ## Testing
 
