@@ -20,7 +20,9 @@ namespace Eventra.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public bool IsApproved { get; set; } = true;
+        public bool IsApproved { get; set; } = false;
+
+        public bool IsFlagged { get; set; } = false;
 
         public User User { get; set; } = null!;
         public Event? Event { get; set; }

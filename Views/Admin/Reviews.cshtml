@@ -1,0 +1,111 @@
+@using Eventra.Models
+@{
+    ViewData["Title"] = "Reviews Moderation";
+    var pending = ViewBag.Pending as List<Review> ?? new List<Review>();
+    var flagged = ViewBag.Flagged as List<Review> ?? new List<Review>();
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styleadmin.css" asp-append-version="true" />
+}
+
+<div class="admin-title-bar">
+    <div class="container">
+        <h1>Reviews Moderation</h1>
+        <p>Approve pending reviews and handle flagged content.</p>
+    </div>
+</div>
+
+<main class="admin-page">
+    <div class="container">
+        <div class="admin-header">
+            <a asp-action="Index" class="admin-back">← Back to Panel</a>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="admin-alert admin-alert--success">@TempData["Success"]</div>
+        }
+
+        @if (flagged.Any())
+        {
+            <section class="admin-section">
+                <h2 class="admin-section-title admin-section-title--flagged">Flagged Reviews (@flagged.Count)</h2>
+                <p class="admin-section-desc">These reviews were automatically flagged for inappropriate language.</p>
+                <div class="admin-review-list">
+                    @foreach (var r in flagged)
+                    {
+                        <div class="admin-review-card admin-review-card--flagged">
+                            <div class="admin-review-header">
+                                <strong>@r.User?.FirstName @r.User?.LastName</strong>
+                                <span class="admin-review-rating">@r.Rating / 5 ★</span>
+                                <span class="admin-flag-badge">Flagged</span>
+                                @if (r.Event != null)
+                                {
+                                    <span class="admin-review-event">Event: @r.Event.Title</span>
+                                }
+                            </div>
+                            <p class="admin-review-comment">@r.Comment</p>
+                            <div class="admin-review-actions">
+                                <form asp-action="ApproveReview" method="post" style="display:inline;">
+                                    <input type="hidden" name="id" value="@r.Id" />
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-approve">Approve Anyway</button>
+                                </form>
+                                <form asp-action="DeleteReview" method="post" style="display:inline;">
+                                    <input type="hidden" name="id" value="@r.Id" />
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-reject">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+
+        <section class="admin-section">
+            <h2 class="admin-section-title">Pending Reviews (@pending.Count)</h2>
+            <p class="admin-section-desc">Reviews awaiting your approval before being shown publicly.</p>
+
+            @if (!pending.Any())
+            {
+                <div class="admin-empty">
+                    <p>No pending reviews at the moment.</p>
+                </div>
+            }
+            else
+            {
+                <div class="admin-review-list">
+                    @foreach (var r in pending)
+                    {
+                        <div class="admin-review-card">
+                            <div class="admin-review-header">
+                                <strong>@r.User?.FirstName @r.User?.LastName</strong>
+                                <span class="admin-review-rating">@r.Rating / 5 ★</span>
+                                @if (r.Event != null)
+                                {
+                                    <span class="admin-review-event">Event: @r.Event.Title</span>
+                                }
+                                <span class="admin-review-date">@r.CreatedAt.ToString("dd MMM yyyy")</span>
+                            </div>
+                            <p class="admin-review-comment">@(string.IsNullOrEmpty(r.Comment) ? "— no comment —" : r.Comment)</p>
+                            <div class="admin-review-actions">
+                                <form asp-action="ApproveReview" method="post" style="display:inline;">
+                                    <input type="hidden" name="id" value="@r.Id" />
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-approve">Approve</button>
+                                </form>
+                                <form asp-action="DeleteReview" method="post" style="display:inline;">
+                                    <input type="hidden" name="id" value="@r.Id" />
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-reject">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+    </div>
+</main>

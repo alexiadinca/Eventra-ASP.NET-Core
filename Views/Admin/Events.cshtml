@@ -1,0 +1,97 @@
+@using Eventra.Models
+@model List<Event>
+@{
+    ViewData["Title"] = "Pending Events";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styleadmin.css" asp-append-version="true" />
+}
+
+<div class="admin-title-bar">
+    <div class="container">
+        <h1>Pending Events</h1>
+        <p>Review events submitted by organizers before they go live.</p>
+    </div>
+</div>
+
+<main class="admin-page">
+    <div class="container">
+        <div class="admin-header">
+            <a asp-action="Index" class="admin-back">← Back to Panel</a>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="admin-alert admin-alert--success">@TempData["Success"]</div>
+        }
+
+        @if (!Model.Any())
+        {
+            <div class="admin-empty">
+                <p>No events pending approval at the moment.</p>
+            </div>
+        }
+        else
+        {
+            <div class="admin-event-list">
+                @foreach (var ev in Model)
+                {
+                    <div class="admin-event-card">
+                        <div class="admin-event-image">
+                            @if (!string.IsNullOrEmpty(ev.ImagePath))
+                            {
+                                <img src="@ev.ImagePath" alt="@ev.Title" />
+                            }
+                            else
+                            {
+                                <div class="admin-event-no-image">No image</div>
+                            }
+                        </div>
+                        <div class="admin-event-body">
+                            <div class="admin-event-meta">
+                                <span class="admin-event-category">@ev.Category?.Name</span>
+                                <span class="admin-event-organizer">by @ev.Organizer?.FirstName @ev.Organizer?.LastName (@ev.Organizer?.Username)</span>
+                            </div>
+                            <h2 class="admin-event-title">@ev.Title</h2>
+                            <div class="admin-event-details">
+                                <span>@ev.EventDate.ToString("dd MMM yyyy") · @ev.StartTime.ToString(@"hh\:mm")@(ev.EndTime.HasValue ? " – " + ev.EndTime.Value.ToString(@"hh\:mm") : "")</span>
+                                <span>@ev.Location, @ev.City</span>
+                                @if (!string.IsNullOrEmpty(ev.AddressLine))
+                                {
+                                    <span>@ev.AddressLine</span>
+                                }
+                                <span>Capacity: @ev.Capacity</span>
+                                <span>@(ev.IsFreeEntry ? "Free Entry" : $"{ev.Price} {ev.Currency}")</span>
+                                @if (!string.IsNullOrEmpty(ev.SupportEmail))
+                                {
+                                    <span>@ev.SupportEmail</span>
+                                }
+                                @if (!string.IsNullOrEmpty(ev.SupportPhone))
+                                {
+                                    <span>@ev.SupportPhone</span>
+                                }
+                            </div>
+                            <div class="admin-event-description">
+                                <strong>Description:</strong>
+                                <p>@ev.Description</p>
+                            </div>
+                            <div class="admin-event-actions">
+                                <form asp-action="ApproveEvent" method="post" style="display:inline;">
+                                    <input type="hidden" name="id" value="@ev.Id" />
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-approve">Approve & Publish</button>
+                                </form>
+                                <form asp-action="RejectEvent" method="post" style="display:inline;">
+                                    <input type="hidden" name="id" value="@ev.Id" />
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-reject">Reject & Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</main>

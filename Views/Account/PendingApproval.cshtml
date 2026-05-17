@@ -1,0 +1,26 @@
+@{
+    ViewData["Title"] = "Pending Approval";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/stylesignin.css" asp-append-version="true" />
+}
+
+<main class="signin-page">
+    <div class="container signin-wrapper">
+        <section class="signin-card" style="max-width:520px; text-align:center;">
+            <div style="font-size:3rem; margin-bottom:1rem;">⏳</div>
+            <h2>Account Pending Approval</h2>
+            <p class="card-subtitle" style="margin-bottom:1.5rem;">
+                Your organizer account has been created and is now waiting for admin review.
+                You will be able to log in once your account is approved.
+            </p>
+            <p style="color:var(--text-soft); font-size:0.95rem; margin-bottom:2rem;">
+                This usually takes up to 24 hours. Thank you for your patience.
+            </p>
+            <a asp-controller="Home" asp-action="Index" class="btn-primary" style="display:inline-block; padding:12px 32px; background:var(--primary); color:#fff; border-radius:8px; font-weight:600; text-decoration:none;">
+                Back to Home
+            </a>
+        </section>
+    </div>
+</main>

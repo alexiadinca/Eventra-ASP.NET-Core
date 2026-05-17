@@ -17,22 +17,22 @@
         </p>
 
         <form class="search-bar" method="get" asp-controller="Events" asp-action="Index">
-            <input type="text" name="city" placeholder="Search by city, event type, organizer..." />
+            <input type="text" name="search" placeholder="Search by event name, city, event type, organizer..." />
             <button type="submit" aria-label="Search">
                 <span>🔍</span>
             </button>
         </form>
 
-        <div class="quick-filters">
-            <button type="button">Today</button>
-            <button type="button">Tomorrow</button>
-            <button type="button">Next Week</button>
-            <button type="button">Next Month</button>
-            <button type="button">Bucharest</button>
-            <button type="button">Craiova</button>
-            <button type="button">Free Entry</button>
-            <button type="button">Pay at Door</button>
-        </div>
+        <form class="quick-filters" method="get" asp-controller="Events" asp-action="Index">
+            <button type="submit" name="filter" value="Today">Today</button>
+            <button type="submit" name="filter" value="Tomorrow">Tomorrow</button>
+            <button type="submit" name="filter" value="NextWeek">Next Week</button>
+            <button type="submit" name="filter" value="NextMonth">Next Month</button>
+            <button type="submit" name="city" value="Bucharest">Bucharest</button>
+            <button type="submit" name="city" value="Craiova">Craiova</button>
+            <button type="submit" name="filter" value="FreeEntry">Free Entry</button>
+            <button type="submit" name="filter" value="Paid">Pay at Door</button>
+        </form>
     </div>
 </section>
 
@@ -47,7 +47,7 @@
         <div class="events-grid">
             @foreach (var ev in Model.FeaturedEvents)
             {
-                <article class="event-card">
+                <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="event-card">
                     <img src="@(string.IsNullOrEmpty(ev.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(ev.ImagePath))" alt="@ev.Title poster">
                     <div class="event-info">
                         <h3>@ev.Title</h3>
@@ -57,9 +57,9 @@
                         <p class="event-desc">
                             @(ev.Description.Length > 100 ? ev.Description.Substring(0, 100) + "..." : ev.Description)
                         </p>
-                        <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="details-btn">View Details</a>
+                        <span class="details-btn">View Details</span>
                     </div>
-                </article>
+                </a>
             }
         </div>
     </div>

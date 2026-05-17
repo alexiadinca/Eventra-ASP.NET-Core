@@ -1,0 +1,77 @@
+@using Eventra.Models
+@model List<OrganizerApprovalRequest>
+@{
+    ViewData["Title"] = "Pending Organizers";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styleadmin.css" asp-append-version="true" />
+}
+
+<div class="admin-title-bar">
+    <div class="container">
+        <h1>Pending Organizers</h1>
+        <p>Review and approve organizer account requests.</p>
+    </div>
+</div>
+
+<main class="admin-page">
+    <div class="container">
+        <div class="admin-header">
+            <a asp-action="Index" class="admin-back">← Back to Panel</a>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="admin-alert admin-alert--success">@TempData["Success"]</div>
+        }
+
+        @if (!Model.Any())
+        {
+            <div class="admin-empty">
+                <p>No pending organizer requests at the moment.</p>
+            </div>
+        }
+        else
+        {
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Requested</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var req in Model)
+                        {
+                            <tr>
+                                <td>@req.User.FirstName @req.User.LastName</td>
+                                <td>@req.User.Username</td>
+                                <td>@req.User.Email</td>
+                                <td>@(req.User.PhoneNumber ?? "—")</td>
+                                <td>@req.RequestedAt.ToString("dd MMM yyyy")</td>
+                                <td class="admin-actions">
+                                    <form asp-action="ApproveOrganizer" method="post" style="display:inline;">
+                                        <input type="hidden" name="id" value="@req.Id" />
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn-approve">Approve</button>
+                                    </form>
+                                    <form asp-action="RejectOrganizer" method="post" style="display:inline;">
+                                        <input type="hidden" name="id" value="@req.Id" />
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn-reject">Reject</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</main>

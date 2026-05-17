@@ -81,20 +81,43 @@
         </section>
 
         <section class="profile-section">
-            <div class="section-title">
-                <h2>Notifications</h2>
+            @{
+                var notifCount = notifications?.Count ?? 0;
+            }
+            <div class="notif-title-row">
+                <h2>Notifications <span class="notif-count">(@notifCount)</span></h2>
+                @if (notifCount > 3)
+                {
+                    <button class="notif-toggle-btn" id="notifToggleBtn" onclick="toggleNotifications(@notifCount)">Show all (@notifCount)</button>
+                }
             </div>
 
             <div class="notification-list">
                 @if (notifications != null && notifications.Any())
                 {
-                    @foreach (var notification in notifications)
+                    for (int i = 0; i < notifications.Count; i++)
                     {
-                        <div class="notification-card">
-                            <h3>@notification.Title</h3>
-                            <p>@notification.Message</p>
+                        var notif = notifications[i];
+                        <div class="notif-card-enhanced @(i >= 3 ? "notif-hidden" : "")">
+                            <div class="notif-card-body">
+                                <div class="notif-card-text">
+                                    <h3>@notif.Title</h3>
+                                    <p>@notif.Message</p>
+                                    <span class="notif-date">@notif.CreatedAt.ToString("dd MMM yyyy, HH:mm")</span>
+                                </div>
+                                <form asp-action="DeleteNotification" asp-controller="Profile" method="post" class="notif-delete-form">
+                                    <input type="hidden" name="id" value="@notif.Id" />
+                                    <button type="submit" class="notif-delete-btn" title="Delete notification">&times;</button>
+                                </form>
+                            </div>
                         </div>
                     }
+
+                    <div class="notif-actions-row">
+                        <form asp-action="DeleteAllNotifications" asp-controller="Profile" method="post">
+                            <button type="submit" class="delete-all-btn">Delete all notifications</button>
+                        </form>
+                    </div>
                 }
                 else
                 {
@@ -105,6 +128,23 @@
                 }
             </div>
         </section>
+
+        <script>
+            function toggleNotifications(total) {
+                var cards = document.querySelectorAll('.notif-card-enhanced');
+                var btn = document.getElementById('notifToggleBtn');
+                var anyHidden = document.querySelector('.notif-hidden') !== null;
+                if (anyHidden) {
+                    cards.forEach(function (el) { el.classList.remove('notif-hidden'); });
+                    btn.textContent = 'Show less';
+                } else {
+                    cards.forEach(function (el, i) {
+                        if (i >= 3) el.classList.add('notif-hidden');
+                    });
+                    btn.textContent = 'Show all (' + total + ')';
+                }
+            }
+        </script>
 
         @if (Model.Role == "Organizer")
         {
@@ -177,13 +217,13 @@
                     {
                         @foreach (var registration in futureRegistrations)
                         {
-                            <div class="mini-event-card">
+                            <a asp-controller="Events" asp-action="Details" asp-route-id="@registration.Event.Id" class="mini-event-card">
                                 <img src="@(string.IsNullOrEmpty(registration.Event.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(registration.Event.ImagePath))" alt="@registration.Event.Title">
                                 <div>
                                     <h3>@registration.Event.Title</h3>
                                     <p>@registration.Event.EventDate.ToString("dd MMMM yyyy") • @registration.Event.City • @registration.Event.StartTime</p>
                                 </div>
-                            </div>
+                            </a>
                         }
                     }
                     else

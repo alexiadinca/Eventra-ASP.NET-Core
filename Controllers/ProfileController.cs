@@ -1,17 +1,18 @@
-﻿using Eventra.Data;
-using Eventra.Models.ViewModels;
+﻿using Eventra.Models.ViewModels;
+using Eventra.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Eventra.Controllers
 {
     public class ProfileController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IProfileService _profileService;
+        private readonly INotificationService _notificationService;
 
-        public ProfileController(ApplicationDbContext context)
+        public ProfileController(IProfileService profileService, INotificationService notificationService)
         {
-            _context = context;
+            _profileService = profileService;
+            _notificationService = notificationService;
         }
 
         [HttpGet]
@@ -22,59 +23,59 @@ namespace Eventra.Controllers
             if (userId == null)
                 return RedirectToAction("SignIn", "Account");
 
-            var user = _context.Users.FirstOrDefault(u => u.Id == userId.Value);
+            var user = _profileService.GetUser(userId.Value);
 
             if (user == null)
                 return RedirectToAction("SignIn", "Account");
 
-            ViewBag.Notifications = _context.Notifications
-                .Where(n => n.UserId == user.Id)
-                .OrderByDescending(n => n.CreatedAt)
-                .Take(5)
-                .ToList();
+            if (user.Role == "Guest")
+            {
+                var allPast = _profileService.GetPastRegistrations(userId.Value, int.MaxValue);
+                foreach (var reg in allPast)
+                {
+                    if (!_profileService.HasReviewedEvent(userId.Value, reg.EventId) &&
+                        !_notificationService.Exists(userId.Value, reg.EventId, "ReviewReminder"))
+                    {
+                        _notificationService.Create(
+                            userId.Value,
+                            "Leave a Review",
+                            $"You attended \"{reg.Event.Title}\". Share your experience by leaving a review!",
+                            "ReviewReminder",
+                            reg.EventId);
+                    }
+                }
+            }
 
-            ViewBag.FutureRegistrations = _context.EventRegistrations
-                .Include(r => r.Event)
-                .Where(r => r.UserId == user.Id && r.Event.EventDate >= DateTime.Today)
-                .OrderBy(r => r.Event.EventDate)
-                .ToList();
-
-            ViewBag.WaitingList = _context.WaitingListEntries
-                .Include(w => w.Event)
-                .Where(w => w.UserId == user.Id)
-                .OrderBy(w => w.JoinedAt)
-                .ToList();
-
-            ViewBag.PastRegistrations = _context.EventRegistrations
-                .Include(r => r.Event)
-                .Where(r => r.UserId == user.Id && r.Event.EventDate < DateTime.Today)
-                .OrderByDescending(r => r.Event.EventDate)
-                .Take(6)
-                .ToList();
-
-            ViewBag.OrganizedEvents = _context.Events
-                .Where(e => e.OrganizerId == user.Id)
-                .OrderByDescending(e => e.EventDate)
-                .ToList();
-
-            ViewBag.OrganizerReviews = _context.Reviews
-                .Include(r => r.User)
-                .Where(r => r.OrganizerId == user.Id && r.IsApproved)
-                .OrderByDescending(r => r.CreatedAt)
-                .ToList();
-
-            ViewBag.OrganizedEvents = _context.Events
-                .Where(e => e.OrganizerId == user.Id)
-                .OrderByDescending(e => e.EventDate)
-                .ToList();
-
-            ViewBag.OrganizerReviews = _context.Reviews
-                .Include(r => r.User)
-                .Where(r => r.OrganizerId == user.Id && r.IsApproved)
-                .OrderByDescending(r => r.CreatedAt)
-                .ToList();
+            ViewBag.Notifications = _notificationService.GetForUser(userId.Value);
+            ViewBag.FutureRegistrations = _profileService.GetFutureRegistrations(userId.Value);
+            ViewBag.WaitingList = _profileService.GetWaitingList(userId.Value);
+            ViewBag.PastRegistrations = _profileService.GetPastRegistrations(userId.Value, 6);
+            ViewBag.OrganizedEvents = _profileService.GetOrganizedEvents(userId.Value);
+            ViewBag.OrganizerReviews = _profileService.GetOrganizerReviews(userId.Value);
 
             return View(user);
+        }
+
+        [HttpPost]
+        public IActionResult DeleteNotification(int id)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+                return RedirectToAction("SignIn", "Account");
+
+            _notificationService.Delete(id, userId.Value);
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        public IActionResult DeleteAllNotifications()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+                return RedirectToAction("SignIn", "Account");
+
+            _notificationService.DeleteAll(userId.Value);
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpGet]
@@ -85,18 +86,12 @@ namespace Eventra.Controllers
             if (userId == null)
                 return RedirectToAction("SignIn", "Account");
 
-            var user = _context.Users.FirstOrDefault(u => u.Id == userId.Value);
+            var user = _profileService.GetUser(userId.Value);
 
             if (user == null)
                 return RedirectToAction("SignIn", "Account");
 
-            var vm = new EditProfileViewModel
-            {
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Email = user.Email,
-                PhoneNumber = user.PhoneNumber
-            };
+            var vm = _profileService.CreateEditViewModel(user);
 
             return View(vm);
         }
@@ -112,12 +107,12 @@ namespace Eventra.Controllers
             if (userId == null)
                 return RedirectToAction("SignIn", "Account");
 
-            var user = _context.Users.FirstOrDefault(u => u.Id == userId.Value);
+            var user = _profileService.GetUser(userId.Value);
 
             if (user == null)
                 return RedirectToAction("SignIn", "Account");
 
-            bool emailUsedByAnother = _context.Users.Any(u => u.Email == vm.Email && u.Id != user.Id);
+            bool emailUsedByAnother = _profileService.EmailInUse(vm.Email, user.Id);
 
             if (emailUsedByAnother)
             {
@@ -125,13 +120,7 @@ namespace Eventra.Controllers
                 return View(vm);
             }
 
-            user.FirstName = vm.FirstName;
-            user.LastName = vm.LastName;
-            user.Email = vm.Email;
-            user.PhoneNumber = vm.PhoneNumber;
-            user.UpdatedAt = DateTime.UtcNow;
-
-            _context.SaveChanges();
+            _profileService.UpdateProfile(user, vm);
 
             return RedirectToAction(nameof(Index));
         }

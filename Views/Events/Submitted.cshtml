@@ -1,0 +1,32 @@
+@{
+    ViewData["Title"] = "Event Submitted";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/stylesignin.css" asp-append-version="true" />
+}
+
+<main class="signin-page">
+    <div class="container signin-wrapper">
+        <section class="signin-card" style="max-width:540px; text-align:center;">
+            <h2>Event Submitted!</h2>
+            <p class="card-subtitle" style="margin-bottom:1.2rem;">
+                Your event has been successfully submitted and is now pending admin review.
+                It will be published publicly once approved.
+            </p>
+            <p style="color:var(--text-soft); font-size:0.95rem; margin-bottom:2rem;">
+                This usually takes up to 24 hours. Thank you for your patience.
+            </p>
+            <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+                <a asp-controller="Events" asp-action="Details" asp-route-id="@ViewBag.EventId"
+                   style="display:inline-block; padding:12px 28px; background:var(--primary); color:#fff; border-radius:8px; font-weight:600; text-decoration:none;">
+                    View My Event
+                </a>
+                <a asp-controller="Home" asp-action="Index"
+                   style="display:inline-block; padding:12px 28px; background:transparent; color:var(--primary); border:2px solid var(--primary); border-radius:8px; font-weight:600; text-decoration:none;">
+                    Back to Home
+                </a>
+            </div>
+        </section>
+    </div>
+</main>

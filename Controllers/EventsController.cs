@@ -1,79 +1,182 @@
-﻿using Eventra.Data;
-using Eventra.Models;
+﻿using Eventra.Models;
 using Eventra.Models.ViewModels;
+using Eventra.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 
 namespace Eventra.Controllers
 {
     public class EventsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IEventService _eventService;
         private readonly IWebHostEnvironment _environment;
 
-        public EventsController(ApplicationDbContext context, IWebHostEnvironment environment)
+        public EventsController(IEventService eventService, IWebHostEnvironment environment)
         {
-            _context = context;
+            _eventService = eventService;
             _environment = environment;
         }
 
         public IActionResult Index(int? categoryId, string? city)
         {
-            var query = _context.Events
-                .Include(e => e.Category)
-                .Include(e => e.Organizer)
-                .AsQueryable();
+            var search = Request.Query["search"].ToString();
+            var filter = Request.Query["filter"].ToString();
+            var events = _eventService.GetEvents(categoryId, city, search, filter);
 
-            if (categoryId.HasValue)
-                query = query.Where(e => e.CategoryId == categoryId.Value);
-
-            if (!string.IsNullOrWhiteSpace(city))
-                query = query.Where(e => e.City == city);
-
-            ViewBag.Categories = _context.Categories.ToList();
+            ViewBag.Categories = _eventService.GetCategories();
             ViewBag.SelectedCategoryId = categoryId;
             ViewBag.SelectedCity = city;
+            ViewBag.Search = search;
+            ViewBag.Filter = filter;
 
-            return View(query.OrderBy(e => e.EventDate).ToList());
+            return View(events);
         }
 
         public IActionResult Details(int id)
         {
-            var ev = _context.Events
-                .Include(e => e.Category)
-                .Include(e => e.Organizer)
-                .FirstOrDefault(e => e.Id == id);
+            var vm = _eventService.GetEventDetails(id);
+            if (vm == null)
+                return NotFound();
 
+            if (vm.IsOrganizerOwner && vm.Event.Status != "Approved")
+                TempData.Remove("SuccessMessage");
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Register(int id)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+                return RedirectToAction("SignIn", "Account", new { returnUrl = Url.Action(nameof(Details), new { id }) });
+
+            var result = _eventService.RegisterForEvent(id, userId.Value);
+
+            if (result == "PastEvent")
+            {
+                TempData["ErrorMessage"] = "This event has already passed.";
+            }
+            else
+            {
+                TempData["SuccessMessage"] = result switch
+                {
+                    "OrganizerOwner" => "You can edit your own event from the details page.",
+                    "AlreadyRegistered" => "You are already registered for this event.",
+                    "AlreadyWaiting" => "You are already on the waiting list.",
+                    "WaitingList" => "You joined the waiting list.",
+                    _ => "You are counted in!"
+                };
+            }
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpGet]
+        public IActionResult Edit(int id)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            var role = HttpContext.Session.GetString("Role");
+
+            if (userId == null)
+                return RedirectToAction("SignIn", "Account", new { returnUrl = Url.Action(nameof(Edit), new { id }) });
+
+            if (role != "Organizer")
+                return Forbid();
+
+            var ev = _eventService.GetEventForOrganizer(id, userId.Value);
             if (ev == null)
                 return NotFound();
 
-            var similarEvents = _context.Events
-                .Include(e => e.Category)
-                .Include(e => e.Organizer)
-                .Where(e => e.Id != id && e.CategoryId == ev.CategoryId)
-                .OrderByDescending(e => e.CreatedAt)
-                .Take(3)
-                .ToList();
+            ViewBag.Categories = new SelectList(_eventService.GetCategories(), "Id", "Name", ev.CategoryId);
+            return View("Create", ev);
+        }
 
-            var organizerReviews = _context.Reviews
-                .Include(r => r.User)
-                .Where(r => r.IsApproved &&
-                            (r.OrganizerId == ev.OrganizerId ||
-                             (r.EventId.HasValue &&
-                              _context.Events.Any(x => x.Id == r.EventId && x.OrganizerId == ev.OrganizerId))))
-                .OrderByDescending(r => r.CreatedAt)
-                .Take(6)
-                .ToList();
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Edit(Event model, IFormFile? imageFile)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            var role = HttpContext.Session.GetString("Role");
 
-            var vm = new EventDetailsViewModel
+            if (userId == null)
+                return RedirectToAction("SignIn", "Account", new { returnUrl = Url.Action(nameof(Edit), new { id = model.Id }) });
+
+            if (role != "Organizer")
+                return Forbid();
+
+            if (_eventService.GetEventForOrganizer(model.Id, userId.Value) == null)
+                return NotFound();
+
+            ModelState.Remove("Category");
+            ModelState.Remove("Organizer");
+            ModelState.Remove("ApprovedByAdmin");
+            ModelState.Remove("Status");
+            ModelState.Remove("ImagePath");
+            ModelState.Remove("OrganizerId");
+            ModelState.Remove("OrganizerDisplayName");
+            ModelState.Remove("AvailableSeats");
+            ModelState.Remove("CreatedAt");
+            ModelState.Remove("UpdatedAt");
+            ModelState.Remove("ApprovedAt");
+            ModelState.Remove("ApprovedByAdminId");
+            ModelState.Remove("EventViews");
+            ModelState.Remove("EventTagMappings");
+            ModelState.Remove("EventRegistrations");
+            ModelState.Remove("WaitingListEntries");
+            ModelState.Remove("Favorites");
+            ModelState.Remove("Reviews");
+
+            if (!ModelState.IsValid)
             {
-                Event = ev,
-                SimilarEvents = similarEvents,
-                OrganizerReviews = organizerReviews
-            };
+                ViewBag.Categories = new SelectList(_eventService.GetCategories(), "Id", "Name", model.CategoryId);
+                return View("Create", model);
+            }
 
-            return View(vm);
+            try
+            {
+                _eventService.UpdateEvent(model, imageFile);
+                return RedirectToAction(nameof(Submitted), new { id = model.Id });
+            }
+            catch (Exception ex)
+            {
+                ViewBag.ErrorMessage = ex.Message;
+                ViewBag.Categories = new SelectList(_eventService.GetCategories(), "Id", "Name", model.CategoryId);
+                return View("Create", model);
+            }
+        }
+
+        [HttpGet]
+        public IActionResult Submitted(int id)
+        {
+            ViewBag.EventId = id;
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Delete(int id)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            var role = HttpContext.Session.GetString("Role");
+
+            if (userId == null)
+                return RedirectToAction("SignIn", "Account", new { returnUrl = Url.Action(nameof(Details), new { id }) });
+
+            if (role != "Organizer")
+                return Forbid();
+
+            try
+            {
+                _eventService.DeleteEvent(id, userId.Value);
+                TempData["SuccessMessage"] = "Event deleted successfully.";
+                return RedirectToAction("Index", "Profile");
+            }
+            catch
+            {
+                return NotFound();
+            }
         }
 
         [HttpGet]
@@ -88,13 +191,20 @@ namespace Eventra.Controllers
             if (role != "Organizer")
                 return Content("Only organizers can create events.");
 
-            ViewBag.Categories = new SelectList(_context.Categories.ToList(), "Id", "Name");
+            var organizer = _eventService.GetOrganizerUser(userId.Value);
+            if (organizer == null || !organizer.IsApproved)
+            {
+                TempData["SuccessMessage"] = "Your organizer account is pending admin approval. You cannot create events yet.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            ViewBag.Categories = new SelectList(_eventService.GetCategories(), "Id", "Name");
 
             return View(new Event
             {
                 Currency = "RON",
                 EventDate = DateTime.Today,
-                Status = "Approved"
+                Status = "PendingApproval"
             });
         }
 
@@ -111,31 +221,13 @@ namespace Eventra.Controllers
             if (role != "Organizer")
                 return Content("Only organizers can create events.");
 
-            model.OrganizerId = userId.Value;
-            model.CreatedAt = DateTime.UtcNow;
-            model.UpdatedAt = DateTime.UtcNow;
-            model.Status = "Approved";
-            model.AvailableSeats = model.Capacity;
-
-            if (model.IsFreeEntry)
-            {
-                model.Price = 0;
-                model.Currency = "RON";
-            }
-            else if (string.IsNullOrWhiteSpace(model.Currency))
-            {
-                model.Currency = "RON";
-            }
-
-            if (!string.IsNullOrWhiteSpace(model.OrganizerDisplayName))
-                model.OrganizerDisplayName = model.OrganizerDisplayName.Trim();
-
             ModelState.Remove("Category");
             ModelState.Remove("Organizer");
             ModelState.Remove("ApprovedByAdmin");
             ModelState.Remove("Status");
             ModelState.Remove("ImagePath");
             ModelState.Remove("OrganizerId");
+            ModelState.Remove("OrganizerDisplayName");
             ModelState.Remove("AvailableSeats");
             ModelState.Remove("CreatedAt");
             ModelState.Remove("UpdatedAt");
@@ -148,53 +240,25 @@ namespace Eventra.Controllers
             ModelState.Remove("Favorites");
             ModelState.Remove("Reviews");
 
-            if (imageFile != null && imageFile.Length > 0)
-            {
-                var extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
-                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-
-                if (!allowedExtensions.Contains(extension))
-                {
-                    ModelState.AddModelError("ImagePath", "Please upload a valid image (.jpg, .jpeg, .png, .webp).");
-                }
-            }
-
             if (!ModelState.IsValid)
             {
-                ViewBag.Categories = new SelectList(_context.Categories.ToList(), "Id", "Name");
+                ViewBag.Categories = new SelectList(_eventService.GetCategories(), "Id", "Name");
                 return View(model);
             }
 
             try
             {
-                if (imageFile != null && imageFile.Length > 0)
-                {
-                    var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "events");
+                var createdEvent = _eventService.CreateEvent(model, imageFile, userId.Value, role);
 
-                    if (!Directory.Exists(uploadsFolder))
-                        Directory.CreateDirectory(uploadsFolder);
-
-                    var extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
-                    var uniqueFileName = Guid.NewGuid().ToString() + extension;
-                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        imageFile.CopyTo(stream);
-                    }
-
-                    model.ImagePath = "/uploads/events/" + uniqueFileName;
-                }
-
-                _context.Events.Add(model);
-                _context.SaveChanges();
-
-                TempData["SuccessMessage"] = "Event successfully created!";
-                return RedirectToAction("Details", new { id = model.Id });
+                return RedirectToAction(nameof(Submitted), new { id = createdEvent.Id });
             }
             catch (Exception ex)
             {
-                ViewBag.Categories = new SelectList(_context.Categories.ToList(), "Id", "Name");
+                ViewBag.Categories = new SelectList(_eventService.GetCategories(), "Id", "Name");
+                if (ex.Message.Contains("valid image", StringComparison.OrdinalIgnoreCase))
+                {
+                    ModelState.AddModelError("ImagePath", ex.Message);
+                }
                 ViewBag.ErrorMessage = ex.ToString();
                 return View(model);
             }

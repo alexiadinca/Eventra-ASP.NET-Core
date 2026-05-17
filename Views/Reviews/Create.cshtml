@@ -6,6 +6,33 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/css/styleregister.css" asp-append-version="true" />
+    <style>
+        .star-picker {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .star-picker .star {
+            font-size: 2.4rem;
+            color: #d4c5b0;
+            cursor: pointer;
+            transition: color 0.12s ease, transform 0.1s ease;
+            user-select: none;
+            line-height: 1;
+        }
+        .star-picker .star.lit {
+            color: #c8922a;
+        }
+        .star-picker .star:hover {
+            transform: scale(1.15);
+        }
+        .star-picker-hint {
+            font-size: 0.85rem;
+            color: var(--text-soft);
+            margin-top: 6px;
+            min-height: 1.2em;
+        }
+    </style>
 }
 
 <main class="register-page">
@@ -26,18 +53,20 @@
             <p class="card-subtitle">Rate the event and share your feedback</p>
 
             <form asp-action="Create" method="post" class="register-form">
+                <input asp-for="ReviewId" type="hidden" />
                 <input asp-for="EventId" type="hidden" />
+                <input asp-for="Rating" type="hidden" />
 
                 <div class="input-group">
-                    <label asp-for="Rating">Rating</label>
-                    <select asp-for="Rating">
-                        <option value="">Select rating</option>
-                        <option value="5">5 - Excellent</option>
-                        <option value="4">4 - Very good</option>
-                        <option value="3">3 - Good</option>
-                        <option value="2">2 - Fair</option>
-                        <option value="1">1 - Poor</option>
-                    </select>
+                    <label>Rating</label>
+                    <div class="star-picker" id="starPicker">
+                        <span class="star" data-value="1">☆</span>
+                        <span class="star" data-value="2">☆</span>
+                        <span class="star" data-value="3">☆</span>
+                        <span class="star" data-value="4">☆</span>
+                        <span class="star" data-value="5">☆</span>
+                    </div>
+                    <p class="star-picker-hint" id="starHint">Click a star to rate</p>
                     <span asp-validation-for="Rating" class="text-danger"></span>
                 </div>
 
@@ -47,7 +76,7 @@
                     <span asp-validation-for="Comment" class="text-danger"></span>
                 </div>
 
-                <button type="submit" class="register-btn">Submit Review</button>
+                <button type="submit" class="register-btn">@(Model.ReviewId.HasValue ? "Update Review" : "Submit Review")</button>
             </form>
         </section>
     </div>
@@ -55,4 +84,43 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const stars = Array.from(document.querySelectorAll('#starPicker .star'));
+            const ratingInput = document.querySelector('input[name="Rating"]');
+            const hint = document.getElementById('starHint');
+            const labels = ['', 'Terrible', 'Poor', 'OK', 'Good', 'Excellent'];
+
+            let selected = @(Model.Rating > 0 ? Model.Rating.ToString() : "0");
+
+            function paint(upTo, cls) {
+                stars.forEach((s, i) => {
+                    s.textContent = i < upTo ? '★' : '☆';
+                    s.classList.toggle('lit', i < upTo);
+                });
+            }
+
+            // Restore existing rating on load (edit mode)
+            if (selected > 0) paint(selected, 'lit');
+
+            stars.forEach((star, idx) => {
+                star.addEventListener('mouseenter', () => {
+                    paint(idx + 1);
+                    hint.textContent = labels[idx + 1];
+                });
+
+                star.addEventListener('click', () => {
+                    selected = idx + 1;
+                    ratingInput.value = selected;
+                    paint(selected);
+                    hint.textContent = labels[selected];
+                });
+            });
+
+            document.getElementById('starPicker').addEventListener('mouseleave', () => {
+                paint(selected);
+                hint.textContent = selected > 0 ? labels[selected] : 'Click a star to rate';
+            });
+        })();
+    </script>
 }

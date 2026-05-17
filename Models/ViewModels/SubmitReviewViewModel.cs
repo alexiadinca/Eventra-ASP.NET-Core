@@ -4,6 +4,8 @@ namespace Eventra.Models.ViewModels
 {
     public class SubmitReviewViewModel
     {
+        public int? ReviewId { get; set; }
+
         [Required]
         public int EventId { get; set; }
 

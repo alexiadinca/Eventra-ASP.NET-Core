@@ -33,6 +33,7 @@
             <p class="card-subtitle">Enter your details to continue</p>
 
             <form asp-action="SignIn" method="post" class="signin-form">
+                <input asp-for="ReturnUrl" type="hidden" />
                 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
                 <div class="input-group">

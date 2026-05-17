@@ -163,6 +163,8 @@ input {
   box-shadow: var(--shadow);
   border: 1px solid rgba(95, 74, 86, 0.25);
   transition: transform 0.35s ease, box-shadow 0.35s ease;
+  display: block;
+  color: inherit;
 }
 
 .event-card:hover {
@@ -205,6 +207,10 @@ input {
   padding: 12px 20px;
   border-radius: 999px;
   font-weight: 700;
+}
+
+.event-card:hover .event-btn {
+  background-color: var(--primary-dark);
 }
 
 .site-footer {

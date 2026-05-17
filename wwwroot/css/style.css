@@ -204,6 +204,15 @@ input {
   color: var(--white);
 }
 
+.event-card {
+  display: block;
+  color: inherit;
+}
+
+.event-card:hover .details-btn {
+  background-color: var(--primary-dark);
+}
+
 /* TITLE BAR */
 .section-title-bar {
   background-color: var(--primary);

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Eventra.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260330195151_InitialCreate")]
+    [Migration("20260516165256_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -531,6 +531,9 @@ namespace Eventra.Migrations
                     b.Property<bool>("IsApproved")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsFlagged")
+                        .HasColumnType("bit");
+
                     b.Property<int?>("OrganizerId")
                         .HasColumnType("int");
 
@@ -613,6 +616,9 @@ namespace Eventra.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsApproved")
                         .HasColumnType("bit");
 
                     b.Property<string>("LastName")

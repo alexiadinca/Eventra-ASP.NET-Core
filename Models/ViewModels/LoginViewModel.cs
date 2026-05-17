@@ -7,6 +7,8 @@ namespace Eventra.Models.ViewModels
         [Required]
         public string EmailOrUsername { get; set; } = string.Empty;
 
+        public string? ReturnUrl { get; set; }
+
         [Required]
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;

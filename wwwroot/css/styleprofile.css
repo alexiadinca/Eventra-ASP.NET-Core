@@ -324,6 +324,9 @@ input {
 .notification-card {
   padding: 22px 24px;
   border-left: 6px solid var(--primary);
+  background-color: var(--card-bg);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
 }
 
 .notification-card h3 {
@@ -334,6 +337,127 @@ input {
 
 .notification-card p {
   color: var(--text-soft);
+}
+
+.notif-title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.notif-title-row h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.2rem;
+  color: var(--primary);
+}
+
+.notif-count {
+  color: var(--text-soft);
+}
+
+.notif-toggle-btn {
+  border: 1.5px solid var(--primary);
+  background: transparent;
+  color: var(--primary);
+  padding: 7px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: 0.2s ease;
+}
+
+.notif-toggle-btn:hover {
+  background: rgba(95, 74, 86, 0.08);
+}
+
+.notif-card-enhanced {
+  background-color: var(--card-bg);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  padding: 20px 24px;
+  border-left: 6px solid var(--primary);
+}
+
+.notif-card-enhanced.notif-hidden {
+  display: none;
+}
+
+.notif-card-body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.notif-card-text h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.6rem;
+  margin-bottom: 6px;
+  color: var(--text-main);
+}
+
+.notif-card-text p {
+  color: var(--text-soft);
+  margin-bottom: 8px;
+}
+
+.notif-date {
+  font-size: 0.83rem;
+  color: var(--text-soft);
+  opacity: 0.75;
+}
+
+.notif-delete-form {
+  flex-shrink: 0;
+}
+
+.notif-delete-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 1.4rem;
+  cursor: pointer;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s ease;
+  line-height: 1;
+  font-family: inherit;
+}
+
+.notif-delete-btn:hover {
+  background: rgba(95, 74, 86, 0.12);
+  color: var(--primary-dark);
+}
+
+.notif-actions-row {
+  margin-top: 4px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.delete-all-btn {
+  border: 1.5px solid #a0485f;
+  background: transparent;
+  color: #a0485f;
+  padding: 8px 20px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: 0.2s ease;
+}
+
+.delete-all-btn:hover {
+  background: rgba(160, 72, 95, 0.08);
 }
 
 /* EVENTS OVERVIEW */

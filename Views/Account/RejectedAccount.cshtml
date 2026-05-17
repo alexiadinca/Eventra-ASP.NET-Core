@@ -1,0 +1,26 @@
+@{
+    ViewData["Title"] = "Account Rejected";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/stylesignin.css" asp-append-version="true" />
+}
+
+<main class="signin-page">
+    <div class="container signin-wrapper">
+        <section class="signin-card" style="max-width:520px; text-align:center;">
+            <h2>Account Not Approved</h2>
+            <p class="card-subtitle" style="margin-bottom:1.2rem;">
+                Unfortunately, your organizer account request has been reviewed and was not approved by our admin team.
+            </p>
+            <p style="color:var(--text-soft); font-size:0.95rem; margin-bottom:2rem;">
+                If you believe this was a mistake or have further questions, please contact us at
+                <strong>support@eventra.ro</strong>.
+            </p>
+            <a asp-controller="Home" asp-action="Index"
+               style="display:inline-block; padding:12px 32px; background:var(--primary); color:#fff; border-radius:8px; font-weight:600; text-decoration:none;">
+                Back to Home
+            </a>
+        </section>
+    </div>
+</main>

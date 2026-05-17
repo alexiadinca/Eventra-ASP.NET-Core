@@ -24,6 +24,8 @@ namespace Eventra.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        public int? RelatedEventId { get; set; }
+
         public User User { get; set; } = null!;
     }
 }

@@ -1,0 +1,75 @@
+@{
+    ViewData["Title"] = "Admin Account";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styleadmin.css" asp-append-version="true" />
+}
+
+<div class="admin-title-bar">
+    <div class="container">
+        <h1>My Account</h1>
+        <p>Update your admin email address or password.</p>
+    </div>
+</div>
+
+<main class="admin-page">
+    <div class="container">
+        <div class="admin-header">
+            <a asp-action="Index" class="admin-back">← Back to Panel</a>
+        </div>
+
+        <div class="admin-profile-grid">
+
+            <div class="admin-profile-card">
+                <h2>Email Address</h2>
+                <p class="admin-current-value">Current: <strong>@ViewBag.Email</strong></p>
+
+                @if (TempData["EmailSuccess"] != null)
+                {
+                    <div class="admin-alert admin-alert--success">@TempData["EmailSuccess"]</div>
+                }
+                @if (TempData["EmailError"] != null)
+                {
+                    <div class="admin-alert admin-alert--error">@TempData["EmailError"]</div>
+                }
+
+                <form asp-action="UpdateEmail" method="post" class="admin-form">
+                    @Html.AntiForgeryToken()
+                    <div class="admin-input-group">
+                        <label for="email">New Email</label>
+                        <input type="email" id="email" name="email" placeholder="admin@eventra.com" required />
+                    </div>
+                    <button type="submit" class="btn-admin-save">Update Email</button>
+                </form>
+            </div>
+
+            <div class="admin-profile-card">
+                <h2>Password</h2>
+
+                @if (TempData["PasswordSuccess"] != null)
+                {
+                    <div class="admin-alert admin-alert--success">@TempData["PasswordSuccess"]</div>
+                }
+                @if (TempData["PasswordError"] != null)
+                {
+                    <div class="admin-alert admin-alert--error">@TempData["PasswordError"]</div>
+                }
+
+                <form asp-action="UpdatePassword" method="post" class="admin-form">
+                    @Html.AntiForgeryToken()
+                    <div class="admin-input-group">
+                        <label for="newPassword">New Password</label>
+                        <input type="password" id="newPassword" name="newPassword" placeholder="Min. 8 characters" required />
+                    </div>
+                    <div class="admin-input-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Repeat password" required />
+                    </div>
+                    <button type="submit" class="btn-admin-save">Update Password</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</main>

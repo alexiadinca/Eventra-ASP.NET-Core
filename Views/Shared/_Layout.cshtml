@@ -41,7 +41,14 @@
                         <a asp-controller="Events" asp-action="Create">Create Event</a>
                     }
 
-                    <a asp-controller="Profile" asp-action="Index">Profile</a>
+                    @if (role == "Admin")
+                    {
+                        <a asp-controller="Admin" asp-action="Index">Panel</a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Profile" asp-action="Index">Profile</a>
+                    }
 
                     <span class="nav-user">Hello, @firstName</span>
 
@@ -54,6 +61,14 @@
     </header>
 
     <main class="page-content">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="tempdata-banner tempdata-success">@TempData["SuccessMessage"]</div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="tempdata-banner tempdata-error">@TempData["ErrorMessage"]</div>
+        }
         @RenderBody()
     </main>
 

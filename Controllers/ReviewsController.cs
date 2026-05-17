@@ -1,18 +1,17 @@
-﻿using Eventra.Data;
-using Eventra.Models;
+﻿using Eventra.Models;
 using Eventra.Models.ViewModels;
+using Eventra.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Eventra.Controllers
 {
     public class ReviewsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IReviewService _reviewService;
 
-        public ReviewsController(ApplicationDbContext context)
+        public ReviewsController(IReviewService reviewService)
         {
-            _context = context;
+            _reviewService = reviewService;
         }
 
         [HttpGet]
@@ -20,21 +19,16 @@ namespace Eventra.Controllers
         {
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null)
-                return RedirectToAction("SignIn", "Account");
+                return RedirectToAction("SignIn", "Account", new { returnUrl = Url.Action(nameof(Create), new { eventId }) });
 
-            var ev = _context.Events
-                .Include(e => e.Organizer)
-                .FirstOrDefault(e => e.Id == eventId);
+            var ev = _reviewService.GetEventForReview(eventId);
 
             if (ev == null)
                 return NotFound();
 
             ViewBag.Event = ev;
 
-            var vm = new SubmitReviewViewModel
-            {
-                EventId = eventId
-            };
+            var vm = _reviewService.GetReviewEditViewModel(eventId, userId.Value) ?? _reviewService.CreateReviewViewModel(eventId);
 
             return View(vm);
         }
@@ -45,34 +39,23 @@ namespace Eventra.Controllers
         {
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null)
-                return RedirectToAction("SignIn", "Account");
+                return RedirectToAction("SignIn", "Account", new { returnUrl = Url.Action(nameof(Create), new { eventId = vm.EventId }) });
 
             if (!ModelState.IsValid)
             {
-                ViewBag.Event = _context.Events
-                    .Include(e => e.Organizer)
-                    .FirstOrDefault(e => e.Id == vm.EventId);
+                ViewBag.Event = _reviewService.GetEventForReview(vm.EventId);
 
                 return View(vm);
             }
 
-            var ev = _context.Events.FirstOrDefault(e => e.Id == vm.EventId);
-            if (ev == null)
-                return NotFound();
-
-            var review = new Review
+            try
             {
-                UserId = userId.Value,
-                EventId = ev.Id,
-                OrganizerId = ev.OrganizerId,
-                Rating = vm.Rating,
-                Comment = vm.Comment,
-                CreatedAt = DateTime.UtcNow,
-                IsApproved = true
-            };
-
-            _context.Reviews.Add(review);
-            _context.SaveChanges();
+                _reviewService.SubmitReview(vm, userId.Value);
+            }
+            catch (InvalidOperationException)
+            {
+                return NotFound();
+            }
 
             return RedirectToAction("Details", "Events", new { id = vm.EventId });
         }

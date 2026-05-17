@@ -1,6 +1,7 @@
 ﻿@model Eventra.Models.Event
 @{
-    ViewData["Title"] = "Create Event";
+    var isEditing = Model.Id > 0;
+    ViewData["Title"] = isEditing ? "Edit Event" : "Create Event";
 }
 
 @section Styles {
@@ -11,10 +12,11 @@
     <div class="container">
         <section class="create-hero">
             <p class="eyebrow">FOR ORGANIZERS AND CREATORS</p>
-            <h1>Create a New Event</h1>
+            <h1>@(isEditing ? "Edit Your Event" : "Create a New Event")</h1>
             <p class="intro-text">
-                Publish elegant experiences on Eventra and let people discover your conference, exhibition,
-                workshop, market, tasting, launch or special event.
+                @(isEditing
+                    ? "Update the event details below. Your changes will go back to admin review before going live."
+                    : "Publish elegant experiences on Eventra and let people discover your conference, exhibition, workshop, market, tasting, launch or special event.")
             </p>
         </section>
 
@@ -50,8 +52,9 @@
                     </div>
                 }
 
-                <form asp-action="Create" method="post" enctype="multipart/form-data" class="create-form">
+                <form asp-action="@(isEditing ? "Edit" : "Create")" method="post" enctype="multipart/form-data" class="create-form">
                     @Html.AntiForgeryToken()
+                    <input asp-for="Id" type="hidden" />
 
                     <div asp-validation-summary="All" class="text-danger"></div>
 
@@ -62,12 +65,6 @@
                     </div>
 
                     <div class="form-row">
-                        <div class="input-group">
-                            <label asp-for="OrganizerDisplayName">Organizer Name</label>
-                            <input asp-for="OrganizerDisplayName" placeholder="Ex: Eventra Studio" />
-                            <span asp-validation-for="OrganizerDisplayName" class="text-danger"></span>
-                        </div>
-
                         <div class="input-group">
                             <label asp-for="CategoryId">Event Type</label>
                             <select asp-for="CategoryId" asp-items="ViewBag.Categories">
@@ -184,7 +181,7 @@
                     </div>
 
                     <div class="form-actions">
-                        <button type="submit" class="publish-btn">Publish Event</button>
+                        <button type="submit" class="publish-btn">@(isEditing ? "Save Changes" : "Publish Event")</button>
                         <button type="reset" class="secondary-btn">Reset</button>
                     </div>
                 </form>

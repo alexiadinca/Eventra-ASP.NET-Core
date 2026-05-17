@@ -1,4 +1,4 @@
-﻿using Eventra.Data;
+using Eventra.Data;
 using Eventra.Models;
 using Eventra.Models.ViewModels;
 using Microsoft.AspNetCore.Identity;
@@ -18,14 +18,16 @@ namespace Eventra.Controllers
         }
 
         [HttpGet]
-        public IActionResult SignIn()
+        public IActionResult SignIn(string? returnUrl = null)
         {
-            return View();
+            return View(new LoginViewModel { ReturnUrl = returnUrl });
         }
 
         [HttpPost]
-        public IActionResult SignIn(LoginViewModel vm)
+        public IActionResult SignIn(LoginViewModel vm, string? returnUrl = null)
         {
+            vm.ReturnUrl ??= returnUrl;
+
             if (!ModelState.IsValid)
                 return View(vm);
 
@@ -46,9 +48,28 @@ namespace Eventra.Controllers
                 return View(vm);
             }
 
+            if (user.Role == "Organizer" && !user.IsApproved)
+            {
+                var request = _context.OrganizerApprovalRequests
+                    .Where(r => r.UserId == user.Id)
+                    .OrderByDescending(r => r.RequestedAt)
+                    .FirstOrDefault();
+
+                if (request?.Status == "Rejected")
+                    return RedirectToAction(nameof(RejectedAccount));
+
+                return RedirectToAction(nameof(PendingApproval));
+            }
+
             HttpContext.Session.SetInt32("UserId", user.Id);
             HttpContext.Session.SetString("FirstName", user.FirstName);
             HttpContext.Session.SetString("Role", user.Role);
+
+            if (!string.IsNullOrWhiteSpace(vm.ReturnUrl) && Url.IsLocalUrl(vm.ReturnUrl))
+                return Redirect(vm.ReturnUrl);
+
+            if (user.Role == "Admin")
+                return RedirectToAction("Index", "Admin");
 
             return RedirectToAction("Index", "Home");
         }
@@ -65,6 +86,12 @@ namespace Eventra.Controllers
             if (!ModelState.IsValid)
                 return View(vm);
 
+            if (vm.Role == "Admin")
+            {
+                ModelState.AddModelError(nameof(vm.Role), "Invalid account type.");
+                return View(vm);
+            }
+
             bool emailExists = _context.Users.Any(u => u.Email == vm.Email);
             bool usernameExists = _context.Users.Any(u => u.Username == vm.Username);
 
@@ -77,6 +104,8 @@ namespace Eventra.Controllers
             if (!ModelState.IsValid)
                 return View(vm);
 
+            var isOrganizer = vm.Role == "Organizer";
+
             var user = new User
             {
                 FirstName = vm.FirstName,
@@ -86,20 +115,48 @@ namespace Eventra.Controllers
                 PhoneNumber = vm.PhoneNumber,
                 Role = vm.Role,
                 IsActive = true,
+                IsApproved = !isOrganizer,
                 CreatedAt = DateTime.UtcNow,
                 QrCodePath = "/images/QrCode.png"
             };
 
             user.PasswordHash = _passwordHasher.HashPassword(user, vm.Password);
-
             _context.Users.Add(user);
+
+            if (isOrganizer)
+            {
+                _context.SaveChanges();
+                var request = new OrganizerApprovalRequest
+                {
+                    UserId = user.Id,
+                    Status = "Pending",
+                    RequestedAt = DateTime.UtcNow
+                };
+                _context.OrganizerApprovalRequests.Add(request);
+            }
+
             _context.SaveChanges();
+
+            if (isOrganizer)
+                return RedirectToAction(nameof(PendingApproval));
 
             HttpContext.Session.SetInt32("UserId", user.Id);
             HttpContext.Session.SetString("FirstName", user.FirstName);
             HttpContext.Session.SetString("Role", user.Role);
 
             return RedirectToAction("Index", "Profile");
+        }
+
+        [HttpGet]
+        public IActionResult PendingApproval()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        public IActionResult RejectedAccount()
+        {
+            return View();
         }
 
         [HttpPost]

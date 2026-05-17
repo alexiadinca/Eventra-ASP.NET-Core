@@ -19,8 +19,8 @@ The application is designed to include the following functionality:
 - user registration and authentication
 - role-based access for Guests and Organizers
 - admin approval for organizer accounts before publishing events
-- event browsing and discovery using filters such as date, location, city, category, or popularity
-- dedicated event details pages with title, date, location, capacity, entry type, and description
+- event browsing and discovery using filters such as date, location, city, category or popularity
+- dedicated event details pages with title, date, location, capacity, entry type and description
 - event registration for guests
 - waiting list system for full events, with automatic queue progression when spots become available
 - personalized user profile with editable personal information

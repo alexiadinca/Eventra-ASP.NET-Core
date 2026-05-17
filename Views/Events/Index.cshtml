@@ -32,15 +32,15 @@
         <section class="events-grid">
             @foreach (var ev in Model)
             {
-                <article class="event-card">
+                <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="event-card">
                     <img src="@(string.IsNullOrEmpty(ev.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(ev.ImagePath))" alt="@ev.Title">
                     <div class="event-card-content">
                         <h2>@ev.Title</h2>
                         <p class="meta">@ev.City • @ev.EventDate.ToString("dd MMMM yyyy") • @ev.StartTime</p>
                         <p class="desc">@(ev.Description.Length > 110 ? ev.Description.Substring(0, 110) + "..." : ev.Description)</p>
-                        <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="event-btn">View Details</a>
+                        <span class="event-btn">View Details</span>
                     </div>
-                </article>
+                </a>
             }
         </section>
     </div>

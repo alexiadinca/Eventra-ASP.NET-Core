@@ -1,0 +1,60 @@
+@{
+    ViewData["Title"] = "Admin Panel";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styleadmin.css" asp-append-version="true" />
+}
+
+<main class="admin-page admin-dashboard">
+    <div class="container">
+
+        <div class="admin-dashboard-header">
+            <h1>Admin Panel</h1>
+            <p>Manage organizers, events and reviews from one place.</p>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="admin-alert admin-alert--success">@TempData["Success"]</div>
+        }
+
+        <div class="admin-stats">
+            <a asp-action="Organizers" class="stat-card">
+                <span class="stat-number">@ViewBag.PendingOrganizers</span>
+                <span class="stat-label">Pending Organizers</span>
+            </a>
+            <a asp-action="Events" class="stat-card">
+                <span class="stat-number">@ViewBag.PendingEvents</span>
+                <span class="stat-label">Pending Events</span>
+            </a>
+            <a asp-action="Reviews" class="stat-card">
+                <span class="stat-number">@ViewBag.PendingReviews</span>
+                <span class="stat-label">Pending Reviews</span>
+            </a>
+            <a asp-action="Reviews" class="stat-card stat-card--flagged">
+                <span class="stat-number">@ViewBag.FlaggedReviews</span>
+                <span class="stat-label">Flagged Reviews</span>
+            </a>
+        </div>
+
+        <div class="admin-nav-cards">
+            <a asp-action="Organizers" class="admin-nav-card">
+                <h3>Organizers</h3>
+                <p>Review and approve organizer account requests.</p>
+            </a>
+            <a asp-action="Events" class="admin-nav-card">
+                <h3>Events</h3>
+                <p>Review events submitted by organizers before they go live.</p>
+            </a>
+            <a asp-action="Reviews" class="admin-nav-card">
+                <h3>Reviews</h3>
+                <p>Moderate user reviews and handle flagged content.</p>
+            </a>
+            <a asp-action="EditProfile" class="admin-nav-card">
+                <h3>My Account</h3>
+                <p>Update your admin email address or password.</p>
+            </a>
+        </div>
+    </div>
+</main>
