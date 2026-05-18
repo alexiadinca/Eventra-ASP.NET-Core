@@ -33,7 +33,7 @@ namespace Eventra.Data
                     FirstName = "Admin", LastName = "Eventra",
                     Email = "admin@eventra.com", Username = "admin",
                     Role = "Admin", IsActive = true, IsApproved = true,
-                    CreatedAt = DateTime.UtcNow, QrCodePath = "/images/QrCode.png"
+                    CreatedAt = DateTime.UtcNow
                 };
                 u.PasswordHash = hasher.HashPassword(u, "Admin2026");
                 context.Users.Add(u);
@@ -46,7 +46,7 @@ namespace Eventra.Data
                     FirstName = "Eventra", LastName = "Studios",
                     Email = "eventra@gmail.com", Username = "EventraStudios",
                     Role = "Organizer", IsActive = true, IsApproved = true,
-                    CreatedAt = DateTime.UtcNow, QrCodePath = "/images/QrCode.png",
+                    CreatedAt = DateTime.UtcNow,
                     ProfilePhotoPath = "/uploads/profile-photos/b3627aa5-1cc6-434e-87b1-0c2961fdd95a.png"
                 };
                 u.PasswordHash = hasher.HashPassword(u, "Eventra1");
@@ -60,7 +60,7 @@ namespace Eventra.Data
                     FirstName = "The Lobby", LastName = "Restaurant",
                     Email = "thelobby@gmail.com", Username = "TheLobbyRestaurant",
                     Role = "Organizer", IsActive = true, IsApproved = true,
-                    CreatedAt = DateTime.UtcNow, QrCodePath = "/images/QrCode.png",
+                    CreatedAt = DateTime.UtcNow,
                     ProfilePhotoPath = "/uploads/profile-photos/d8821eed-cd6f-482b-bea2-8e3ee436394a.png"
                 };
                 u.PasswordHash = hasher.HashPassword(u, "Thelobby1");
@@ -74,7 +74,7 @@ namespace Eventra.Data
                     FirstName = "Mayfair", LastName = "39",
                     Email = "mayfair@gmail.com", Username = "Mayfair39",
                     Role = "Organizer", IsActive = true, IsApproved = true,
-                    CreatedAt = DateTime.UtcNow, QrCodePath = "/images/QrCode.png",
+                    CreatedAt = DateTime.UtcNow,
                     ProfilePhotoPath = "/uploads/profile-photos/09c93e0d-49ab-4ca6-91c3-c8d9858c603f.jpg"
                 };
                 u.PasswordHash = hasher.HashPassword(u, "Mayfair1");
@@ -102,7 +102,7 @@ namespace Eventra.Data
                     FirstName = "Andreea", LastName = "Maria",
                     Email = "andreea@test.com", Username = "andreea",
                     Role = "Guest", IsActive = true, IsApproved = true,
-                    CreatedAt = DateTime.UtcNow, QrCodePath = "/images/QrCode.png"
+                    CreatedAt = DateTime.UtcNow
                 };
                 u.PasswordHash = hasher.HashPassword(u, "Test1234");
                 context.Users.Add(u);
@@ -115,7 +115,7 @@ namespace Eventra.Data
                     FirstName = "Radu", LastName = "Popescu",
                     Email = "radu@test.com", Username = "radu",
                     Role = "Guest", IsActive = true, IsApproved = true,
-                    CreatedAt = DateTime.UtcNow, QrCodePath = "/images/QrCode.png"
+                    CreatedAt = DateTime.UtcNow
                 };
                 u.PasswordHash = hasher.HashPassword(u, "Test1234");
                 context.Users.Add(u);
@@ -128,7 +128,7 @@ namespace Eventra.Data
                     FirstName = "Bianca", LastName = "Tudor",
                     Email = "bianca@test.com", Username = "bianca",
                     Role = "Guest", IsActive = true, IsApproved = true,
-                    CreatedAt = DateTime.UtcNow, QrCodePath = "/images/QrCode.png"
+                    CreatedAt = DateTime.UtcNow
                 };
                 u.PasswordHash = hasher.HashPassword(u, "Test1234");
                 context.Users.Add(u);
@@ -141,7 +141,7 @@ namespace Eventra.Data
                     FirstName = "Student", LastName = "Briceag",
                     Email = "studentbriceag@test.com", Username = "StudentBriceag",
                     Role = "Guest", IsActive = true, IsApproved = true,
-                    CreatedAt = DateTime.UtcNow, QrCodePath = "/images/QrCode.png"
+                    CreatedAt = DateTime.UtcNow
                 };
                 u.PasswordHash = hasher.HashPassword(u, "Student1");
                 context.Users.Add(u);
@@ -670,24 +670,7 @@ namespace Eventra.Data
                     Comment = "Spring Brunch at Mayfair 39 was absolutely magical. The Japanese pancakes were as impressive as they sound and the matcha cocktails were unlike anything I have tried. The space is beautifully curated.",
                     IsApproved = true, IsFlagged = false, CreatedAt = DateTime.UtcNow.AddDays(-5)
                 });
-
-            // StudentBriceag - pending review (teacher demo: appears in admin Pending queue) 
-            var aprilStartupNight = await context.Events.FirstOrDefaultAsync(e => e.Title == "April Startup Night");
-            if (briceag != null && eventraStudios != null && aprilStartupNight != null &&
-                !await context.Reviews.AnyAsync(r => r.UserId == briceag.Id && r.EventId == aprilStartupNight.Id))
-            {
-                context.Reviews.Add(new Review
-                {
-                    UserId = briceag.Id, OrganizerId = eventraStudios.Id, EventId = aprilStartupNight.Id,
-                    Rating = 4,
-                    Comment = "Really inspiring pitches and a great networking session at the end. The venue at Hilton was well-chosen and the schedule was tight and professional. Would recommend to any student interested in entrepreneurship.",
-                    IsApproved = false, IsFlagged = false, CreatedAt = DateTime.UtcNow.AddDays(-1)
-                });
-            }
-
-            await context.SaveChangesAsync();
         }
-
         // FAVORITES 
 
         private static async Task SeedFavorites(ApplicationDbContext context)

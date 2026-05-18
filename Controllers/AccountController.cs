@@ -1,26 +1,22 @@
-using Eventra.Data;
-using Eventra.Models;
 using Eventra.Models.ViewModels;
-using Microsoft.AspNetCore.Identity;
+using Eventra.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Eventra.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly ApplicationDbContext _context;
-        private readonly PasswordHasher<User> _passwordHasher;
+        private readonly IAccountService _accountService;
 
         private static readonly HashSet<string> _demoUsernames = new(StringComparer.OrdinalIgnoreCase)
         {
-            "admin", "AlexiaDinca", "EventraStudios", "TheLobbyRestaurant",
-            "Mayfair39", "andreea", "radu", "bianca", "StudentBriceag"
+            "admin", "EventraStudios", "TheLobbyRestaurant",
+            "Mayfair39", "andreea", "radu", "bianca", "StudentBriceag", "TestOrganizer"
         };
 
-        public AccountController(ApplicationDbContext context)
+        public AccountController(IAccountService accountService)
         {
-            _context = context;
-            _passwordHasher = new PasswordHasher<User>();
+            _accountService = accountService;
         }
 
         [HttpGet]
@@ -37,18 +33,9 @@ namespace Eventra.Controllers
             if (!ModelState.IsValid)
                 return View(vm);
 
-            var user = _context.Users.FirstOrDefault(u =>
-                u.Email == vm.EmailOrUsername || u.Username == vm.EmailOrUsername);
+            var user = _accountService.FindByEmailOrUsername(vm.EmailOrUsername);
 
-            if (user == null)
-            {
-                ModelState.AddModelError(string.Empty, "Invalid email/username or password.");
-                return View(vm);
-            }
-
-            var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, vm.Password);
-
-            if (result == PasswordVerificationResult.Failed)
+            if (user == null || !_accountService.VerifyPassword(user, vm.Password))
             {
                 ModelState.AddModelError(string.Empty, "Invalid email/username or password.");
                 return View(vm);
@@ -56,10 +43,7 @@ namespace Eventra.Controllers
 
             if (user.Role == "Organizer" && !user.IsApproved)
             {
-                var request = _context.OrganizerApprovalRequests
-                    .Where(r => r.UserId == user.Id)
-                    .OrderByDescending(r => r.RequestedAt)
-                    .FirstOrDefault();
+                var request = _accountService.GetLatestApprovalRequest(user.Id);
 
                 if (request?.Status == "Rejected")
                     return RedirectToAction(nameof(RejectedAccount));
@@ -98,50 +82,18 @@ namespace Eventra.Controllers
                 return View(vm);
             }
 
-            bool emailExists = _context.Users.Any(u => u.Email == vm.Email);
-            bool usernameExists = _context.Users.Any(u => u.Username == vm.Username);
-
-            if (emailExists)
+            if (_accountService.EmailExists(vm.Email))
                 ModelState.AddModelError(nameof(vm.Email), "An account with this email already exists.");
 
-            if (usernameExists)
+            if (_accountService.UsernameExists(vm.Username))
                 ModelState.AddModelError(nameof(vm.Username), "This username is already taken.");
 
             if (!ModelState.IsValid)
                 return View(vm);
 
-            var isOrganizer = vm.Role == "Organizer";
+            var user = _accountService.Register(vm);
 
-            var user = new User
-            {
-                FirstName = vm.FirstName,
-                LastName = vm.LastName,
-                Email = vm.Email,
-                Username = vm.Username,
-                PhoneNumber = vm.PhoneNumber,
-                Role = vm.Role,
-                IsActive = true,
-                IsApproved = !isOrganizer,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            user.PasswordHash = _passwordHasher.HashPassword(user, vm.Password);
-            _context.Users.Add(user);
-            _context.SaveChanges();
-
-            if (isOrganizer)
-            {
-                var request = new OrganizerApprovalRequest
-                {
-                    UserId = user.Id,
-                    Status = "Pending",
-                    RequestedAt = DateTime.UtcNow
-                };
-                _context.OrganizerApprovalRequests.Add(request);
-                _context.SaveChanges();
-            }
-
-            if (isOrganizer)
+            if (user.Role == "Organizer")
                 return RedirectToAction(nameof(PendingApproval));
 
             HttpContext.Session.SetInt32("UserId", user.Id);
@@ -183,8 +135,7 @@ namespace Eventra.Controllers
             if (!ModelState.IsValid)
                 return View(vm);
 
-            var user = _context.Users.FirstOrDefault(u =>
-                u.Email == vm.EmailOrUsername || u.Username == vm.EmailOrUsername);
+            var user = _accountService.FindByEmailOrUsername(vm.EmailOrUsername);
 
             if (user == null)
             {
@@ -198,42 +149,37 @@ namespace Eventra.Controllers
                 return View(vm);
             }
 
-            TempData["ResetUserId"] = user.Id;
-            return RedirectToAction(nameof(ResetPassword));
+            var token = _accountService.GenerateResetToken(user);
+            return RedirectToAction(nameof(ResetPassword), new { token });
         }
 
         [HttpGet]
-        public IActionResult ResetPassword()
+        public IActionResult ResetPassword(string? token = null)
         {
-            if (!TempData.ContainsKey("ResetUserId"))
+            if (string.IsNullOrWhiteSpace(token) || _accountService.GetUserByResetToken(token) == null)
+            {
+                TempData["ErrorMessage"] = "This password reset link is invalid or has expired.";
                 return RedirectToAction(nameof(ForgotPassword));
+            }
 
-            TempData.Keep("ResetUserId");
-            return View(new ResetPasswordViewModel());
+            return View(new ResetPasswordViewModel { Token = token });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult ResetPassword(ResetPasswordViewModel vm)
         {
-            if (!TempData.ContainsKey("ResetUserId"))
-                return RedirectToAction(nameof(ForgotPassword));
-
-            var userId = Convert.ToInt32(TempData["ResetUserId"]);
-
             if (!ModelState.IsValid)
-            {
-                TempData["ResetUserId"] = userId;
                 return View(vm);
+
+            var user = _accountService.GetUserByResetToken(vm.Token ?? "");
+            if (user == null)
+            {
+                TempData["ErrorMessage"] = "This password reset link is invalid or has expired.";
+                return RedirectToAction(nameof(ForgotPassword));
             }
 
-            var user = _context.Users.Find(userId);
-            if (user == null)
-                return RedirectToAction(nameof(ForgotPassword));
-
-            user.PasswordHash = _passwordHasher.HashPassword(user, vm.NewPassword);
-            user.UpdatedAt = DateTime.UtcNow;
-            _context.SaveChanges();
+            _accountService.ResetPassword(user, vm.NewPassword);
 
             TempData["SuccessMessage"] = "Your password has been reset. You can now sign in with your new password.";
             return RedirectToAction(nameof(SignIn));

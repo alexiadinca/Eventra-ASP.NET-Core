@@ -32,6 +32,7 @@ namespace Eventra.Extensions
             services.AddScoped<IHomeService, HomeService>();
             services.AddScoped<IAdminService, AdminService>();
             services.AddScoped<IQrCodeService, QrCodeService>();
+            services.AddScoped<IAccountService, AccountService>();
             return services;
         }
 

@@ -37,6 +37,11 @@ namespace Eventra.Models
         [StringLength(255)]
         public string? QrCodePath { get; set; }
 
+        [StringLength(100)]
+        public string? PasswordResetToken { get; set; }
+
+        public DateTime? PasswordResetTokenExpiry { get; set; }
+
         [Required]
         [StringLength(20)]
         public string Role { get; set; } = "Guest"; // Guest, Organizer, Admin

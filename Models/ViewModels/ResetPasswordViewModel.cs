@@ -4,6 +4,8 @@ namespace Eventra.Models.ViewModels
 {
     public class ResetPasswordViewModel
     {
+        public string? Token { get; set; }
+
         [Required(ErrorMessage = "New password is required.")]
         [DataType(DataType.Password)]
         [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must have at least 8 characters.")]

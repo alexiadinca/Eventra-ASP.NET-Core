@@ -8,8 +8,8 @@ namespace Eventra.Controllers
     {
         private static readonly HashSet<string> _demoUsernames = new(StringComparer.OrdinalIgnoreCase)
         {
-            "admin", "AlexiaDinca", "EventraStudios", "TheLobbyRestaurant",
-            "Mayfair39", "andreea", "radu", "bianca", "StudentBriceag"
+            "admin", "EventraStudios", "TheLobbyRestaurant",
+            "Mayfair39", "andreea", "radu", "bianca", "StudentBriceag", "TestOrganizer"
         };
 
         private readonly IProfileService _profileService;
