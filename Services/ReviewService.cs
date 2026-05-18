@@ -10,7 +10,7 @@ namespace Eventra.Services
         private static readonly HashSet<string> BadWords = new(StringComparer.OrdinalIgnoreCase)
         {
             "fuck", "shit", "bastard", "crap", "dumb", "stupid", "asshole",
-            "cacat", "muie", "dracu", "prost", "proasta", "tampit", "idiot", "morti"
+            "cacat", "dracu", "prost", "proasta", "tampit", "idiot", "morti"
         };
 
         private static bool ContainsBadWords(string? text) =>
