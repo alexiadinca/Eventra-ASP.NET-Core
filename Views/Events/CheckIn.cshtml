@@ -1,0 +1,165 @@
+@using Eventra.Models
+@{
+    ViewData["Title"] = "Check-In";
+    var ev           = ViewBag.Event as Eventra.Models.Event;
+    var checkIns     = ViewBag.CheckIns as List<EventCheckIn> ?? new List<EventCheckIn>();
+    var scanResult   = ViewBag.ScanResult as string;
+    var attendeeName = ViewBag.ScanAttendeeName as string;
+    var attendee     = ViewBag.ScanAttendeeUser as Eventra.Models.User;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/styleevents.css" asp-append-version="true" />
+}
+
+<style>
+    .checkin-page { padding: 60px 0 80px; }
+    .checkin-header { margin-bottom: 36px; }
+    .checkin-header h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(2.4rem, 4vw, 3.6rem); }
+    .checkin-header p { color: var(--text-soft); margin-top: 8px; }
+    .checkin-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 40px; align-items: start; }
+    .scan-card { background: #f8f3ed; border-radius: 20px; padding: 34px; box-shadow: 0 10px 25px rgba(55,34,46,.10); }
+    .scan-card h2 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; margin-bottom: 18px; }
+    .scan-input { width: 100%; padding: 14px 16px; border: 1.6px solid #c9b8bf; border-radius: 12px; font-family: 'Montserrat', sans-serif; font-size: 1rem; background: #fffaf5; outline: none; margin-bottom: 14px; }
+    .scan-input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(95,74,86,.10); }
+    .scan-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--primary); color: #fff; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 1rem; cursor: pointer; }
+    .result-banner { border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; font-weight: 600; }
+    .result-valid { background: #edfaf3; border-left: 5px solid #2d9e6b; color: #1a6344; }
+    .result-warn { background: #fffbf0; border-left: 5px solid #c9a84c; color: #7a6020; }
+    .result-error { background: #fdf1f1; border-left: 5px solid #c94c4c; color: #7a2020; }
+    .checkin-list-card { background: #f8f3ed; border-radius: 20px; padding: 34px; box-shadow: 0 10px 25px rgba(55,34,46,.10); }
+    .checkin-list-card h2 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; margin-bottom: 20px; }
+    .checkin-count { color: var(--text-soft); font-size: 0.9rem; margin-bottom: 16px; }
+    .checkin-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    .checkin-table th { text-align: left; padding: 10px 12px; color: var(--primary); font-weight: 700; border-bottom: 2px solid #e0d4d8; }
+    .checkin-table td { padding: 10px 12px; border-bottom: 1px solid #ede3e8; color: var(--text-main); }
+    .checkin-table tr:last-child td { border-bottom: none; }
+    .badge-valid { background: #edfaf3; color: #1a6344; padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-soft); margin-bottom: 28px; font-size: 0.92rem; }
+    .back-link:hover { color: var(--primary); }
+    .guest-card { background: #fffaf5; border-radius: 16px; padding: 20px 22px; margin-bottom: 20px; display: flex; align-items: center; gap: 18px; border-left: 5px solid var(--primary); }
+    .guest-avatar-img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); flex-shrink: 0; }
+    .guest-avatar-initials { width: 64px; height: 64px; border-radius: 50%; background: var(--primary); color: #f5ebdf; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 600; flex-shrink: 0; }
+    .guest-info { flex: 1; min-width: 0; }
+    .guest-name { font-weight: 700; font-size: 1rem; color: var(--text-main); }
+    .guest-email { font-size: 0.83rem; color: var(--text-soft); margin-top: 2px; }
+    @@media (max-width: 900px) { .checkin-grid { grid-template-columns: 1fr; } }
+</style>
+
+<main class="checkin-page">
+    <div class="container">
+        <a asp-controller="Events" asp-action="Details" asp-route-id="@ev?.Id" class="back-link">&#8592; Back to event</a>
+
+        <div class="checkin-header">
+            <p class="eyebrow">Organizer Check-In</p>
+            <h1>@ev?.Title</h1>
+            <p>@ev?.EventDate.ToString("dd MMMM yyyy") &bull; @ev?.City &bull; @ev?.Location</p>
+        </div>
+
+        <div class="checkin-grid">
+            <div class="scan-card">
+                <h2>Scan QR Code</h2>
+
+                @if (!string.IsNullOrEmpty(scanResult))
+                {
+                    @if (attendee != null)
+                    {
+                        <div class="guest-card">
+                            @if (!string.IsNullOrEmpty(attendee.ProfilePhotoPath))
+                            {
+                                <img src="@Url.Content(attendee.ProfilePhotoPath)" class="guest-avatar-img" alt="@attendee.FirstName" />
+                            }
+                            else
+                            {
+                                <div class="guest-avatar-initials">
+                                    @(attendee.FirstName?.Length > 0 ? attendee.FirstName[0].ToString() : "")@(attendee.LastName?.Length > 0 ? attendee.LastName[0].ToString() : "")
+                                </div>
+                            }
+                            <div class="guest-info">
+                                <div class="guest-name">@attendee.FirstName @attendee.LastName</div>
+                                <div class="guest-email">@attendee.Email</div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (scanResult == "Valid")
+                    {
+                        <div class="result-banner result-valid">
+                            &#10003; Checked in successfully.
+                        </div>
+                    }
+                    else if (scanResult == "AlreadyCheckedIn")
+                    {
+                        <div class="result-banner result-warn">
+                            &#9888; Already checked in.
+                        </div>
+                    }
+                    else if (scanResult == "NotRegistered")
+                    {
+                        <div class="result-banner result-error">
+                            &#10007; Not registered for this event.
+                        </div>
+                    }
+                    else if (scanResult == "InvalidToken")
+                    {
+                        <div class="result-banner result-error">
+                            &#10007; Invalid QR code. Please try again.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="result-banner result-error">
+                            &#10007; Could not process this QR code.
+                        </div>
+                    }
+                }
+
+                <form asp-action="CheckIn" asp-route-id="@ev?.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <input class="scan-input" type="text" name="qrToken" placeholder="Scan or paste QR code here&hellip;"
+                           autofocus autocomplete="off" />
+                    <button type="submit" class="scan-btn">Check In</button>
+                </form>
+
+                <p style="margin-top:14px; color:var(--text-soft); font-size:0.83rem;">
+                    Point a barcode scanner at the attendee&rsquo;s QR code from their profile page.
+                </p>
+            </div>
+
+            <div class="checkin-list-card">
+                <h2>Checked-In Attendees</h2>
+                <p class="checkin-count">@checkIns.Count attendee@(checkIns.Count == 1 ? "" : "s") checked in</p>
+
+                @if (checkIns.Any())
+                {
+                    <table class="checkin-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Attendee</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < checkIns.Count; i++)
+                            {
+                                var c = checkIns[i];
+                                <tr>
+                                    <td>@(i + 1)</td>
+                                    <td><strong>@c.EventRegistration.User.FirstName @c.EventRegistration.User.LastName</strong></td>
+                                    <td>@c.ScannedAt.ToLocalTime().ToString("HH:mm")</td>
+                                    <td><span class="badge-valid">@c.Result</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <p style="color:var(--text-soft);">No attendees checked in yet.</p>
+                }
+            </div>
+        </div>
+    </div>
+</main>

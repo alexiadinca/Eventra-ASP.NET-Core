@@ -1,17 +1,74 @@
-﻿@model IEnumerable<Eventra.Models.Event>
+@model IEnumerable<Eventra.Models.Event>
 @{
     ViewData["Title"] = "Events";
     var categories = ViewBag.Categories as List<Eventra.Models.Category>;
+    var selectedCategoryId = ViewBag.SelectedCategoryId as int?;
+    var activeFilter = ViewBag.Filter as string;
+    var userId = ViewBag.UserId as int?;
+    var favoriteIds = ViewBag.FavoriteIds as HashSet<int> ?? new HashSet<int>();
+    var favoriteCounts = ViewBag.FavoriteCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
+    var userRole = ViewBag.UserRole as string;
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/styleevents.css" asp-append-version="true" />
 }
 
+@section Scripts {
+<script>
+window.addEventListener('pageshow', function (e) {
+    if (e.persisted) window.location.reload();
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.heart-form').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var btn = form.querySelector('.heart-btn');
+            var token = form.querySelector('[name="__RequestVerificationToken"]').value;
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: '__RequestVerificationToken=' + encodeURIComponent(token)
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.redirect) { window.location.href = data.redirect; return; }
+
+                var isFav = data.result === 'Added';
+                btn.classList.toggle('active', isFav);
+                btn.textContent = isFav ? '♥' : '♡';
+                btn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
+
+                var wrapper = form.closest('.event-card-wrapper');
+                var footer = wrapper.querySelector('.card-footer');
+                var badge = footer.querySelector('.fav-count-badge');
+
+                if (data.count > 0) {
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'fav-count-badge';
+                        footer.appendChild(badge);
+                    }
+                    badge.textContent = '♥ ' + data.count;
+                } else if (badge) {
+                    badge.remove();
+                }
+            });
+        });
+    });
+});
+</script>
+}
+
 <main class="events-page">
     <div class="container">
         <section class="events-hero">
-            <p class="eyebrow">Discover what’s happening</p>
+            <p class="eyebrow">Discover what's happening</p>
             <h1>Browse All Events</h1>
             <p class="intro-text">
                 Explore conferences, tastings, exhibitions, openings and special curated experiences from Eventra.
@@ -19,28 +76,59 @@
         </section>
 
         <section class="filter-bar">
-            <a asp-action="Index" class="event-btn">All</a>
+            <a asp-action="Index" class="event-btn @(selectedCategoryId == null && string.IsNullOrEmpty(activeFilter) ? "active" : "")">All</a>
+            <a asp-action="Index" asp-route-filter="MostPopular" class="event-btn @(activeFilter == "MostPopular" ? "active" : "")">Most Popular</a>
             @if (categories != null)
             {
                 @foreach (var category in categories)
                 {
-                    <a asp-action="Index" asp-route-categoryId="@category.Id" class="event-btn">@category.Name</a>
+                    <a asp-action="Index" asp-route-categoryId="@category.Id" class="event-btn @(selectedCategoryId == category.Id ? "active" : "")">@category.Name</a>
                 }
             }
         </section>
 
         <section class="events-grid">
-            @foreach (var ev in Model)
+            @if (Model.Any())
             {
-                <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="event-card">
-                    <img src="@(string.IsNullOrEmpty(ev.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(ev.ImagePath))" alt="@ev.Title">
-                    <div class="event-card-content">
-                        <h2>@ev.Title</h2>
-                        <p class="meta">@ev.City • @ev.EventDate.ToString("dd MMMM yyyy") • @ev.StartTime</p>
-                        <p class="desc">@(ev.Description.Length > 110 ? ev.Description.Substring(0, 110) + "..." : ev.Description)</p>
-                        <span class="event-btn">View Details</span>
+                @foreach (var ev in Model)
+                {
+                    var count = favoriteCounts.TryGetValue(ev.Id, out var c) ? c : 0;
+                    var isFaved = favoriteIds.Contains(ev.Id);
+
+                    <div class="event-card-wrapper">
+                        <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="event-card">
+                            <img src="@(string.IsNullOrEmpty(ev.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(ev.ImagePath))" alt="@ev.Title">
+                            <div class="event-card-content">
+                                <h2>@ev.Title</h2>
+                                <p class="meta">@ev.City • @ev.EventDate.ToString("dd MMMM yyyy") • @ev.StartTime</p>
+                                <p class="desc">@(ev.Description.Length > 110 ? ev.Description.Substring(0, 110) + "..." : ev.Description)</p>
+                                <div class="card-footer">
+                                    <span class="event-btn">View Details</span>
+                                    @if (count > 0)
+                                    {
+                                        <span class="fav-count-badge">&#9829; @count</span>
+                                    }
+                                </div>
+                            </div>
+                        </a>
+
+                        @if (userId.HasValue && userId.Value != ev.OrganizerId && userRole != "Admin")
+                        {
+                            <form asp-controller="Events" asp-action="Favorite" asp-route-id="@ev.Id" method="post" class="heart-form">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                <button type="submit" class="heart-btn @(isFaved ? "active" : "")"
+                                        title="@(isFaved ? "Remove from favorites" : "Add to favorites")">
+                                    @(isFaved ? "♥" : "♡")
+                                </button>
+                            </form>
+                        }
                     </div>
-                </a>
+                }
+            }
+            else
+            {
+                <p style="color:var(--text-soft); grid-column: 1/-1;">No events found for this filter.</p>
             }
         </section>
     </div>

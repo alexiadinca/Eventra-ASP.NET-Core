@@ -11,6 +11,12 @@ namespace Eventra.Controllers
         private readonly ApplicationDbContext _context;
         private readonly PasswordHasher<User> _passwordHasher;
 
+        private static readonly HashSet<string> _demoUsernames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "admin", "AlexiaDinca", "EventraStudios", "TheLobbyRestaurant",
+            "Mayfair39", "andreea", "radu", "bianca", "StudentBriceag"
+        };
+
         public AccountController(ApplicationDbContext context)
         {
             _context = context;
@@ -116,16 +122,15 @@ namespace Eventra.Controllers
                 Role = vm.Role,
                 IsActive = true,
                 IsApproved = !isOrganizer,
-                CreatedAt = DateTime.UtcNow,
-                QrCodePath = "/images/QrCode.png"
+                CreatedAt = DateTime.UtcNow
             };
 
             user.PasswordHash = _passwordHasher.HashPassword(user, vm.Password);
             _context.Users.Add(user);
+            _context.SaveChanges();
 
             if (isOrganizer)
             {
-                _context.SaveChanges();
                 var request = new OrganizerApprovalRequest
                 {
                     UserId = user.Id,
@@ -133,9 +138,8 @@ namespace Eventra.Controllers
                     RequestedAt = DateTime.UtcNow
                 };
                 _context.OrganizerApprovalRequests.Add(request);
+                _context.SaveChanges();
             }
-
-            _context.SaveChanges();
 
             if (isOrganizer)
                 return RedirectToAction(nameof(PendingApproval));
@@ -164,6 +168,75 @@ namespace Eventra.Controllers
         {
             HttpContext.Session.Clear();
             return RedirectToAction("Index", "Home");
+        }
+
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            return View(new ForgotPasswordViewModel());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ForgotPassword(ForgotPasswordViewModel vm)
+        {
+            if (!ModelState.IsValid)
+                return View(vm);
+
+            var user = _context.Users.FirstOrDefault(u =>
+                u.Email == vm.EmailOrUsername || u.Username == vm.EmailOrUsername);
+
+            if (user == null)
+            {
+                ModelState.AddModelError(string.Empty, "No account found with that email or username.");
+                return View(vm);
+            }
+
+            if (_demoUsernames.Contains(user.Username))
+            {
+                ModelState.AddModelError(string.Empty, "Password reset is disabled for demo accounts.");
+                return View(vm);
+            }
+
+            TempData["ResetUserId"] = user.Id;
+            return RedirectToAction(nameof(ResetPassword));
+        }
+
+        [HttpGet]
+        public IActionResult ResetPassword()
+        {
+            if (!TempData.ContainsKey("ResetUserId"))
+                return RedirectToAction(nameof(ForgotPassword));
+
+            TempData.Keep("ResetUserId");
+            return View(new ResetPasswordViewModel());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ResetPassword(ResetPasswordViewModel vm)
+        {
+            if (!TempData.ContainsKey("ResetUserId"))
+                return RedirectToAction(nameof(ForgotPassword));
+
+            var userId = Convert.ToInt32(TempData["ResetUserId"]);
+
+            if (!ModelState.IsValid)
+            {
+                TempData["ResetUserId"] = userId;
+                return View(vm);
+            }
+
+            var user = _context.Users.Find(userId);
+            if (user == null)
+                return RedirectToAction(nameof(ForgotPassword));
+
+            user.PasswordHash = _passwordHasher.HashPassword(user, vm.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+            _context.SaveChanges();
+
+            TempData["SuccessMessage"] = "Your password has been reset. You can now sign in with your new password.";
+            return RedirectToAction(nameof(SignIn));
         }
     }
 }

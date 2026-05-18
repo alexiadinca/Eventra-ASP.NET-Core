@@ -7,6 +7,8 @@
     var pastRegistrations = ViewBag.PastRegistrations as List<Eventra.Models.EventRegistration>;
     var organizedEvents = ViewBag.OrganizedEvents as List<Eventra.Models.Event>;
     var organizerReviews = ViewBag.OrganizerReviews as List<Eventra.Models.Review>;
+    var favorites = ViewBag.Favorites as List<Eventra.Models.Favorite>;
+    var myReviews = ViewBag.MyReviews as List<Eventra.Models.Review>;
 }
 
 @section Styles {
@@ -17,16 +19,23 @@
     <div class="container">
         <section class="profile-header">
             <h1>Profile</h1>
-            <p>Your Eventra account overview, personal QR access and registered events.</p>
+            <p>@(Model.Role == "Organizer" ? "Your Eventra organizer account — manage events and check in guests." : "Your Eventra account overview, personal QR access and registered events.")</p>
         </section>
 
         <section class="profile-top">
             <div class="profile-card">
                 <div class="avatar-wrapper">
-                    <div class="avatar-circle">
-                        <div class="avatar-head"></div>
-                        <div class="avatar-body"></div>
-                    </div>
+                    @if (!string.IsNullOrEmpty(Model.ProfilePhotoPath))
+                    {
+                        <img src="@Url.Content(Model.ProfilePhotoPath)" alt="Profile photo" class="profile-photo-img" />
+                    }
+                    else
+                    {
+                        <div class="avatar-circle">
+                            <div class="avatar-head"></div>
+                            <div class="avatar-body"></div>
+                        </div>
+                    }
                 </div>
 
                 <div class="profile-info">
@@ -65,19 +74,76 @@
 
                     <div class="profile-actions">
                         <a asp-controller="Profile" asp-action="Edit" class="edit-link-btn">Edit Profile</a>
-                        <button class="secondary">Download QR</button>
+                        @if (Model.Role != "Organizer")
+                        {
+                            <a href="@Url.Action("Qr", "Profile", new { id = Model.Id })" download="my-eventra-qr.png" class="edit-link-btn">Download QR</a>
+                        }
                     </div>
                 </div>
             </div>
 
-            <div class="qr-card">
-                <h2>Your guest QR Code</h2>
-                <div class="qr-box">
-                    <img src="@(string.IsNullOrEmpty(Model.QrCodePath) ? Url.Content("~/images/QrCode.png") : Url.Content(Model.QrCodePath))" alt="Guest QR code">
+            @if (Model.Role == "Organizer")
+            {
+                <div class="qr-card" id="scanner-card">
+                    <h2>Scan Guest QR</h2>
+                    <p style="color:var(--text-soft); font-size:0.88rem; margin-bottom:16px;">
+                        Point your camera at a guest&rsquo;s QR code to view their profile and check registration status.
+                    </p>
+
+                    <div id="qr-reader" style="width:100%; border-radius:12px; overflow:hidden; background:#1a1a1a;"></div>
+
+                    <button id="start-btn" onclick="startScanner()" class="save-btn" style="width:100%; margin-top:14px;">
+                        Start Camera
+                    </button>
+                    <button id="stop-btn" onclick="stopScanner()" class="save-btn" style="width:100%; margin-top:14px; display:none; background:#8a6a7a;">
+                        Stop Camera
+                    </button>
+
+                    <div style="margin-top:20px;">
+                        <p style="color:var(--text-soft); font-size:0.82rem; margin-bottom:10px; text-align:center;">— or paste URL manually —</p>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="manual-input" placeholder="Paste QR code here…"
+                                   style="flex:1; padding:12px 14px; border:1.6px solid #c9b8bf; border-radius:10px; font-family:'Montserrat',sans-serif; outline:none; background:#fffaf5; font-size:0.88rem;" />
+                            <button onclick="navigateManual()" class="save-btn" style="padding:12px 18px; white-space:nowrap;">Go</button>
+                        </div>
+                        <p id="scan-error" style="color:#c94c4c; font-size:0.82rem; margin-top:8px; display:none;"></p>
+                    </div>
                 </div>
-                <p class="qr-note">Scan at entrance!</p>
-                <p class="qr-desc">This QR code is linked to your registrations.</p>
-            </div>
+            }
+            else
+            {
+                <div class="qr-card">
+                    @{
+                        var profileViewUrl = $"{Context.Request.Scheme}://{Context.Request.Host}/Profile/View/{Model.Id}";
+                    }
+                    <h2>Your guest QR Code</h2>
+                    <div class="qr-box">
+                        <img src="@Url.Action("Qr", "Profile", new { id = Model.Id })" alt="Guest QR code">
+                    </div>
+                    <p class="qr-note">Scan at entrance!</p>
+
+                    <div style="margin-top:14px; background:#fffaf5; border:1.5px solid #e0d4d8; border-radius:10px; padding:10px 12px; display:flex; align-items:center; gap:10px;">
+                        <span id="profile-url" style="font-size:0.78rem; color:var(--text-soft); word-break:break-all; flex:1;">@profileViewUrl</span>
+                        <button onclick="copyProfileUrl()" id="copy-btn"
+                                style="flex-shrink:0; padding:6px 14px; border:1.5px solid var(--primary); border-radius:8px; background:transparent; color:var(--primary); font-family:'Montserrat',sans-serif; font-size:0.8rem; font-weight:700; cursor:pointer;">
+                            Copy
+                        </button>
+                    </div>
+                    <p style="color:var(--text-soft); font-size:0.78rem; margin-top:8px;">Share this link with the organizer or paste it in their scanner.</p>
+                    <script>
+                        function copyProfileUrl() {
+                            var url = document.getElementById('profile-url').textContent.trim();
+                            navigator.clipboard.writeText(url).then(function () {
+                                var btn = document.getElementById('copy-btn');
+                                btn.textContent = 'Copied!';
+                                btn.style.background = 'var(--primary)';
+                                btn.style.color = '#fff';
+                                setTimeout(function () { btn.textContent = 'Copy'; btn.style.background = 'transparent'; btn.style.color = 'var(--primary)'; }, 2000);
+                            });
+                        }
+                    </script>
+                </div>
+            }
         </section>
 
         <section class="profile-section">
@@ -162,8 +228,12 @@
                                 <img src="@(string.IsNullOrEmpty(ev.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(ev.ImagePath))" alt="@ev.Title">
                                 <h3>@ev.Title</h3>
                                 <p>@ev.EventDate.ToString("dd MMMM yyyy") • @ev.City</p>
-                                <p>
+                                <p style="display:flex; gap:8px; flex-wrap:wrap;">
                                     <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="event-btn">View Details</a>
+                                    @if (ev.Status == "Approved")
+                                    {
+                                        <a asp-controller="Events" asp-action="CheckIn" asp-route-id="@ev.Id" class="event-btn">Check-In</a>
+                                    }
                                 </p>
                             </div>
                         }
@@ -217,13 +287,18 @@
                     {
                         @foreach (var registration in futureRegistrations)
                         {
-                            <a asp-controller="Events" asp-action="Details" asp-route-id="@registration.Event.Id" class="mini-event-card">
+                            <div class="event-entry-card">
                                 <img src="@(string.IsNullOrEmpty(registration.Event.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(registration.Event.ImagePath))" alt="@registration.Event.Title">
-                                <div>
-                                    <h3>@registration.Event.Title</h3>
+                                <div class="event-entry-info">
+                                    <h3><a asp-controller="Events" asp-action="Details" asp-route-id="@registration.Event.Id">@registration.Event.Title</a></h3>
                                     <p>@registration.Event.EventDate.ToString("dd MMMM yyyy") • @registration.Event.City • @registration.Event.StartTime</p>
+                                    <form asp-controller="Profile" asp-action="CancelRegistration" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@registration.Id" />
+                                        <button type="submit" class="cancel-reg-btn">Cancel registration</button>
+                                    </form>
                                 </div>
-                            </a>
+                            </div>
                         }
                     }
                     else
@@ -244,9 +319,18 @@
                     {
                         @foreach (var item in waitingList)
                         {
-                            <div class="waiting-card">
-                                <h3>@item.Event.Title</h3>
-                                <p>You are currently on the waiting list. Position: @item.Position.</p>
+                            <div class="event-entry-card">
+                                <img src="@(string.IsNullOrEmpty(item.Event.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(item.Event.ImagePath))" alt="@item.Event.Title">
+                                <div class="event-entry-info">
+                                    <h3>@item.Event.Title</h3>
+                                    <p>@item.Event.EventDate.ToString("dd MMMM yyyy") • @item.Event.City</p>
+                                    <p>You are <strong>#@item.Position</strong> on the waiting list.</p>
+                                    <form asp-controller="Profile" asp-action="CancelWaitingList" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <button type="submit" class="cancel-reg-btn">Leave waiting list</button>
+                                    </form>
+                                </div>
                             </div>
                         }
                     }
@@ -262,33 +346,211 @@
 
             <section class="profile-section">
                 <div class="section-title">
-                    <h2>Past Events</h2>
+                    <h2>Loved Events</h2>
                 </div>
 
-                <div class="past-events-grid">
-                    @if (pastRegistrations != null && pastRegistrations.Any())
+                <div class="loved-events-list">
+                @if (favorites != null && favorites.Any())
+                {
+                    @foreach (var fav in favorites)
                     {
-                        @foreach (var registration in pastRegistrations)
-                        {
-                            <div class="past-card">
-                                <img src="@(string.IsNullOrEmpty(registration.Event.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(registration.Event.ImagePath))" alt="@registration.Event.Title">
-                                <h3>@registration.Event.Title</h3>
-                                <p>Attended on @registration.Event.EventDate.ToString("dd MMMM yyyy")</p>
-                                <p>
-                                    <a asp-controller="Reviews" asp-action="Create" asp-route-eventId="@registration.Event.Id" class="event-btn">Leave a Review</a>
+                        <div class="event-entry-card" data-fav-card="@fav.Event.Id">
+                            <img src="@(string.IsNullOrEmpty(fav.Event.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(fav.Event.ImagePath))" alt="@fav.Event.Title">
+                            <div class="event-entry-info">
+                                <h3><a asp-controller="Events" asp-action="Details" asp-route-id="@fav.Event.Id">@fav.Event.Title</a></h3>
+                                <p>@fav.Event.EventDate.ToString("dd MMMM yyyy") • @fav.Event.City • @fav.Event.StartTime</p>
+                                <p style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+                                    <a asp-controller="Events" asp-action="Details" asp-route-id="@fav.Event.Id" class="event-btn">View Details</a>
+                                    <form asp-controller="Events" asp-action="Favorite" asp-route-id="@fav.Event.Id" method="post" class="fav-remove-form">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="cancel-reg-btn">&#9829; Remove</button>
+                                    </form>
                                 </p>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="waiting-card">
+                        <h3>No favorite events yet</h3>
+                        <p>Events you love will appear here.</p>
+                    </div>
+                }
+                </div>
+            </section>
+
+            <script>
+            document.querySelectorAll('.fav-remove-form').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    var token = form.querySelector('[name="__RequestVerificationToken"]').value;
+                    var card = form.closest('[data-fav-card]');
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: '__RequestVerificationToken=' + encodeURIComponent(token)
+                    })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.redirect) { window.location.href = data.redirect; return; }
+                        if (data.result === 'Removed') {
+                            card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                            card.style.opacity = '0';
+                            card.style.transform = 'translateX(-12px)';
+                            setTimeout(function () {
+                                card.remove();
+                                var list = document.querySelector('.loved-events-list');
+                                if (!list.querySelector('[data-fav-card]')) {
+                                    list.innerHTML = '<div class="waiting-card"><h3>No favorite events yet</h3><p>Events you love will appear here.</p></div>';
+                                }
+                            }, 300);
+                        }
+                    });
+                });
+            });
+            </script>
+
+            <section class="profile-section">
+                <div class="section-title">
+                    <h2>My Reviews</h2>
+                </div>
+
+                <div class="notification-list">
+                    @if (myReviews != null && myReviews.Any())
+                    {
+                        @foreach (var review in myReviews)
+                        {
+                            <div class="notification-card">
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+                                    <div style="flex:1; min-width:0;">
+                                        <h3 style="margin-bottom:4px;">@(review.Event != null ? review.Event.Title : "Event")</h3>
+                                        <p style="color:#c4973e; font-size:1.1rem; margin-bottom:4px; letter-spacing:2px;">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</p>
+                                        @if (!string.IsNullOrWhiteSpace(review.Comment))
+                                        {
+                                            <p style="color:var(--text-soft); font-size:0.9rem;">"@review.Comment"</p>
+                                        }
+                                        <div style="display:flex; align-items:center; gap:12px; margin-top:6px; flex-wrap:wrap;">
+                                            <span style="font-size:0.8rem; color:var(--text-soft);">@review.CreatedAt.ToString("dd MMM yyyy")</span>
+                                            @if (review.EventId.HasValue)
+                                            {
+                                                <a asp-controller="Reviews" asp-action="Create" asp-route-eventId="@review.EventId" class="event-btn" style="font-size:0.8rem; padding:4px 12px;">Edit</a>
+                                            }
+                                        </div>
+                                    </div>
+                                    <span style="font-size:0.78rem; font-weight:700; padding:4px 12px; border-radius:20px; white-space:nowrap; flex-shrink:0;
+                                                 background:@(review.IsApproved ? "#e8f5e9" : (review.IsFlagged ? "#fce4ec" : "#fff3e0"));
+                                                 color:@(review.IsApproved ? "#2e7d32" : (review.IsFlagged ? "#c62828" : "#e65100"));">
+                                        @(review.IsApproved ? "Approved" : (review.IsFlagged ? "Flagged" : "Pending approval"))
+                                    </span>
+                                </div>
                             </div>
                         }
                     }
                     else
                     {
                         <div class="waiting-card">
-                            <h3>No past events yet</h3>
-                            <p>You have not attended any events yet.</p>
+                            <h3>No reviews yet</h3>
+                            <p>You have not submitted any reviews yet.</p>
                         </div>
                     }
                 </div>
             </section>
+
+            <section class="profile-section">
+                <div class="section-title">
+                    <h2>Past Events</h2>
+                </div>
+
+                @if (pastRegistrations != null && pastRegistrations.Any())
+                {
+                    @foreach (var registration in pastRegistrations)
+                    {
+                        <div class="event-entry-card">
+                            <img src="@(string.IsNullOrEmpty(registration.Event.ImagePath) ? Url.Content("~/images/LogoEventra.png") : Url.Content(registration.Event.ImagePath))" alt="@registration.Event.Title">
+                            <div class="event-entry-info">
+                                <h3>@registration.Event.Title</h3>
+                                <p>@registration.Event.EventDate.ToString("dd MMMM yyyy") • @registration.Event.City</p>
+                                <p style="margin-top:8px;">
+                                    <a asp-controller="Reviews" asp-action="Create" asp-route-eventId="@registration.Event.Id" class="event-btn">Leave a Review</a>
+                                </p>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="waiting-card">
+                        <h3>No past events yet</h3>
+                        <p>You have not attended any events yet.</p>
+                    </div>
+                }
+            </section>
         }
     </div>
 </main>
+
+@if (Model.Role == "Organizer")
+{
+    @section Scripts {
+        <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+        <script>
+            let html5QrCode = null;
+
+            function startScanner() {
+                document.getElementById('start-btn').style.display = 'none';
+                document.getElementById('stop-btn').style.display = 'block';
+                document.getElementById('scan-error').style.display = 'none';
+
+                html5QrCode = new Html5Qrcode("qr-reader");
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 220, height: 220 } },
+                    function (decodedText) {
+                        if (decodedText.includes('/Profile/View/')) {
+                            html5QrCode.stop().then(function () {
+                                window.location.href = decodedText;
+                            });
+                        }
+                    },
+                    function () { }
+                ).catch(function () {
+                    showError('Camera access denied or not available. Use the manual input below.');
+                    document.getElementById('start-btn').style.display = 'block';
+                    document.getElementById('stop-btn').style.display = 'none';
+                });
+            }
+
+            function stopScanner() {
+                if (html5QrCode) {
+                    html5QrCode.stop().catch(function () { });
+                }
+                document.getElementById('start-btn').style.display = 'block';
+                document.getElementById('stop-btn').style.display = 'none';
+            }
+
+            function navigateManual() {
+                var url = document.getElementById('manual-input').value.trim();
+                if (url.includes('/Profile/View/')) {
+                    window.location.href = url;
+                } else {
+                    showError('Invalid QR code. Please scan a valid Eventra guest QR.');
+                }
+            }
+
+            function showError(msg) {
+                var el = document.getElementById('scan-error');
+                el.textContent = msg;
+                el.style.display = 'block';
+            }
+
+            document.getElementById('manual-input').addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') navigateManual();
+            });
+        </script>
+    }
+}

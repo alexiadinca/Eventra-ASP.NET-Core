@@ -74,8 +74,32 @@
                     <p>@Model.Event.Description</p>
                 </div>
 
+                @if (Model.FavoriteCount > 0 || (Model.IsLoggedIn && !Model.IsOrganizerOwner && !Model.IsAdmin))
+                {
+                    <div class="fav-action">
+                        @if (Model.FavoriteCount > 0)
+                        {
+                            <p class="fav-count-text">&#9829; @Model.FavoriteCount @(Model.FavoriteCount == 1 ? "person" : "people") loved this event</p>
+                        }
+                        @if (Model.IsLoggedIn && !Model.IsOrganizerOwner && !Model.IsAdmin)
+                        {
+                            <form asp-action="Favorite" asp-route-id="@Model.Event.Id" method="post" class="inline-form">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="returnUrl" value="@Url.Action("Details", "Events", new { id = Model.Event.Id })" />
+                                <button type="submit" class="fav-detail-btn @(Model.IsFavorited ? "active" : "")">
+                                    @(Model.IsFavorited ? "♥ Remove from Favorites" : "♡ Add to Favorites")
+                                </button>
+                            </form>
+                        }
+                    </div>
+                }
+
                 <div class="cta-area">
-                    @if (Model.IsOrganizerOwner)
+                    @if (Model.IsAdmin)
+                    {
+                        @* Admin can view events but cannot register *@
+                    }
+                    else if (Model.IsOrganizerOwner)
                     {
                         @if (Model.Event.Status == "PendingApproval")
                         {
@@ -86,6 +110,10 @@
 
                         <div class="organizer-actions">
                             <a asp-action="Edit" asp-route-id="@Model.Event.Id" class="join-btn">Edit Event</a>
+                            @if (Model.Event.Status == "Approved")
+                            {
+                                <a asp-action="CheckIn" asp-route-id="@Model.Event.Id" class="join-btn">Check-In Attendees</a>
+                            }
                             <button type="button" class="join-btn delete-trigger-btn" onclick="openDeleteModal()">Delete Event</button>
                         </div>
 
@@ -105,7 +133,7 @@
                     }
                     else if (Model.IsPastEvent)
                     {
-                        <button class="join-btn join-btn--disabled" disabled>Event passed</button>
+                        <button class="join-btn join-btn--disabled" disabled>This event has passed</button>
                         @if (Model.HasRegistered)
                         {
                             <p class="seats-text">You attended this event.</p>
@@ -118,6 +146,21 @@
                             <button type="submit" class="join-btn">Count me in</button>
                         </form>
                         <p class="seats-text">Please sign in to join.</p>
+                    }
+                    else if (Model.HasRegistered)
+                    {
+                        <button class="join-btn join-btn--disabled" disabled>You are registered</button>
+                        <p class="seats-text">Your spot is confirmed.</p>
+                    }
+                    else if (Model.IsOnWaitingList)
+                    {
+                        <p class="seats-text">You are <strong>#@Model.WaitingListPosition</strong> on the waiting list.</p>
+                        <form asp-action="CancelWaitingList" asp-controller="Events" method="post" class="inline-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="entryId" value="@Model.WaitingListEntryId" />
+                            <input type="hidden" name="eventId" value="@Model.Event.Id" />
+                            <button type="submit" class="join-btn cancel-btn">Leave waiting list</button>
+                        </form>
                     }
                     else
                     {
@@ -214,6 +257,49 @@
         if (modal) {
             modal.addEventListener('click', function (e) {
                 if (e.target === modal) closeDeleteModal();
+            });
+        }
+
+        var favForm = document.querySelector('.fav-action .inline-form');
+        if (favForm) {
+            favForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var btn = favForm.querySelector('.fav-detail-btn');
+                var token = favForm.querySelector('[name="__RequestVerificationToken"]').value;
+                var returnUrl = favForm.querySelector('[name="returnUrl"]');
+
+                var body = '__RequestVerificationToken=' + encodeURIComponent(token);
+                if (returnUrl) body += '&returnUrl=' + encodeURIComponent(returnUrl.value);
+
+                fetch(favForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: body
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.redirect) { window.location.href = data.redirect; return; }
+
+                    var isFav = data.result === 'Added';
+                    btn.classList.toggle('active', isFav);
+                    btn.textContent = isFav ? '♥ Remove from Favorites' : '♡ Add to Favorites';
+
+                    var favAction = document.querySelector('.fav-action');
+                    var countText = favAction.querySelector('.fav-count-text');
+                    if (data.count > 0) {
+                        if (!countText) {
+                            countText = document.createElement('p');
+                            countText.className = 'fav-count-text';
+                            favAction.insertBefore(countText, btn.parentElement);
+                        }
+                        countText.textContent = '♥ ' + data.count + ' ' + (data.count === 1 ? 'person' : 'people') + ' loved this event';
+                    } else if (countText) {
+                        countText.remove();
+                    }
+                });
             });
         }
     });

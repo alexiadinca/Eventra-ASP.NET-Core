@@ -6,5 +6,7 @@ namespace Eventra.Repositories.Interfaces
     {
         IQueryable<EventRegistration> QueryWithEvent();
         IQueryable<EventRegistration> QueryByUserWithEvent(int userId);
+        IQueryable<EventRegistration> QueryByEventWithUserAndCheckIns(int eventId);
+        bool IsRegisteredForEvent(int userId, int eventId);
     }
 }

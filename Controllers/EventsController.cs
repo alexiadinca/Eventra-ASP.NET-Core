@@ -29,6 +29,16 @@ namespace Eventra.Controllers
             ViewBag.Search = search;
             ViewBag.Filter = filter;
 
+            var userId = HttpContext.Session.GetInt32("UserId");
+            var userRole = HttpContext.Session.GetString("Role");
+            ViewBag.UserId = userId;
+            ViewBag.UserRole = userRole;
+            if (userId.HasValue)
+                ViewBag.FavoriteIds = _eventService.GetFavoriteEventIds(userId.Value);
+
+            var eventIds = events.Select(e => e.Id).ToList();
+            ViewBag.FavoriteCounts = _eventService.GetFavoriteCounts(eventIds);
+
             return View(events);
         }
 
@@ -56,7 +66,7 @@ namespace Eventra.Controllers
 
             if (result == "PastEvent")
             {
-                TempData["ErrorMessage"] = "This event has already passed.";
+                TempData["ErrorMessage"] = "This event has already started or passed.";
             }
             else
             {
@@ -71,6 +81,27 @@ namespace Eventra.Controllers
             }
 
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CancelWaitingList(int entryId, int eventId)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+                return RedirectToAction("SignIn", "Account", new { returnUrl = Url.Action(nameof(Details), new { id = eventId }) });
+
+            try
+            {
+                _eventService.CancelWaitingList(entryId, userId.Value);
+                TempData["SuccessMessage"] = "You have been removed from the waiting list.";
+            }
+            catch
+            {
+                TempData["ErrorMessage"] = "Could not remove you from the waiting list.";
+            }
+
+            return RedirectToAction(nameof(Details), new { id = eventId });
         }
 
         [HttpGet]
@@ -180,6 +211,84 @@ namespace Eventra.Controllers
         }
 
         [HttpGet]
+        public IActionResult CheckIn(int id)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            var role = HttpContext.Session.GetString("Role");
+
+            if (userId == null)
+                return RedirectToAction("SignIn", "Account");
+
+            if (role != "Organizer")
+                return Forbid();
+
+            var ev = _eventService.GetEventForOrganizer(id, userId.Value);
+            if (ev == null)
+                return NotFound();
+
+            ViewBag.Event = ev;
+            ViewBag.CheckIns = _eventService.GetCheckInsForEvent(id);
+            ViewBag.ScanResult = TempData["ScanResult"];
+            ViewBag.ScanAttendeeName = TempData["ScanAttendeeName"];
+
+            if (TempData["ScanAttendeeUserId"] is int attendeeUserId)
+                ViewBag.ScanAttendeeUser = _eventService.GetOrganizerUser(attendeeUserId);
+
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CheckIn(int id, string? qrToken)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            var role = HttpContext.Session.GetString("Role");
+
+            if (userId == null)
+                return RedirectToAction("SignIn", "Account");
+
+            if (role != "Organizer")
+                return Forbid();
+
+            var (result, attendeeName, attendeeUserId) = _eventService.ProcessCheckIn(id, userId.Value, qrToken?.Trim() ?? "");
+
+            TempData["ScanResult"] = result;
+            TempData["ScanAttendeeName"] = attendeeName;
+            if (attendeeUserId.HasValue)
+                TempData["ScanAttendeeUserId"] = attendeeUserId.Value;
+
+            return RedirectToAction(nameof(CheckIn), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Favorite(int id, string? returnUrl)
+        {
+            var isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+            var userId = HttpContext.Session.GetInt32("UserId");
+
+            if (userId == null)
+            {
+                var signInUrl = Url.Action("SignIn", "Account", new { returnUrl = Url.Action(nameof(Details), new { id }) });
+                if (isAjax) return Json(new { redirect = signInUrl });
+                return Redirect(signInUrl!);
+            }
+
+            var result = _eventService.ToggleFavorite(id, userId.Value);
+
+            if (isAjax)
+            {
+                var newCount = _eventService.GetFavoriteCounts(new List<int> { id }).GetValueOrDefault(id, 0);
+                return Json(new { result, count = newCount });
+            }
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpGet]
         public IActionResult Create()
         {
             var userId = HttpContext.Session.GetInt32("UserId");
@@ -240,6 +349,11 @@ namespace Eventra.Controllers
             ModelState.Remove("Favorites");
             ModelState.Remove("Reviews");
 
+            if (model.EventDate.Date + model.StartTime < DateTime.Now)
+            {
+                ModelState.AddModelError("EventDate", "The event date and start time cannot be in the past.");
+            }
+
             if (!ModelState.IsValid)
             {
                 ViewBag.Categories = new SelectList(_eventService.GetCategories(), "Id", "Name");
@@ -249,7 +363,6 @@ namespace Eventra.Controllers
             try
             {
                 var createdEvent = _eventService.CreateEvent(model, imageFile, userId.Value, role);
-
                 return RedirectToAction(nameof(Submitted), new { id = createdEvent.Id });
             }
             catch (Exception ex)
@@ -259,7 +372,10 @@ namespace Eventra.Controllers
                 {
                     ModelState.AddModelError("ImagePath", ex.Message);
                 }
-                ViewBag.ErrorMessage = ex.ToString();
+                else
+                {
+                    ViewBag.ErrorMessage = ex.Message;
+                }
                 return View(model);
             }
         }

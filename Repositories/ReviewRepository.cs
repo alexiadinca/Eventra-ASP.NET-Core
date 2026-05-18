@@ -41,5 +41,12 @@ namespace Eventra.Repositories
                 .Include(r => r.Event)
                 .Where(r => r.OrganizerId == organizerId || (r.EventId.HasValue && r.Event != null && r.Event.OrganizerId == organizerId));
         }
+
+        public IQueryable<Review> QueryByUserWithEvent(int userId)
+        {
+            return _context.Reviews
+                .Include(r => r.Event)
+                .Where(r => r.UserId == userId);
+        }
     }
 }

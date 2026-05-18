@@ -15,6 +15,13 @@ namespace Eventra.Services.Interfaces
         void UpdateEvent(Event model, IFormFile? imageFile);
         void DeleteEvent(int eventId, int organizerId);
         string RegisterForEvent(int eventId, int userId);
+        void CancelRegistration(int registrationId, int userId);
+        void CancelWaitingList(int entryId, int userId);
         User? GetOrganizerUser(int userId);
+        (string result, string? attendeeName, int? attendeeUserId) ProcessCheckIn(int eventId, int organizerId, string qrToken);
+        List<EventCheckIn> GetCheckInsForEvent(int eventId);
+        string ToggleFavorite(int eventId, int userId);
+        HashSet<int> GetFavoriteEventIds(int userId);
+        Dictionary<int, int> GetFavoriteCounts(List<int> eventIds);
     }
 }

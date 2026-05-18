@@ -52,6 +52,13 @@
                     </div>
                 }
 
+                @if (isEditing)
+                {
+                    <div style="margin-bottom:20px; padding:14px 18px; background:#fffbf0; border-left:4px solid #c9a84c; border-radius:10px; color:#7a6020; font-size:0.93rem; font-family:'Montserrat',sans-serif;">
+                        <strong>Note:</strong> Saving changes will send this event back for admin review. It will not be visible to the public until re-approved.
+                    </div>
+                }
+
                 <form asp-action="@(isEditing ? "Edit" : "Create")" method="post" enctype="multipart/form-data" class="create-form">
                     @Html.AntiForgeryToken()
                     <input asp-for="Id" type="hidden" />
@@ -77,7 +84,7 @@
                     <div class="form-row">
                         <div class="input-group">
                             <label asp-for="EventDate">Date</label>
-                            <input asp-for="EventDate" type="date" />
+                            <input asp-for="EventDate" type="date" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
                             <span asp-validation-for="EventDate" class="text-danger"></span>
                         </div>
 

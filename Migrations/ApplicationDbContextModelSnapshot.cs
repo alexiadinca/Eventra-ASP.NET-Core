@@ -146,6 +146,9 @@ namespace Eventra.Migrations
                     b.Property<DateTime>("EventDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("FavoriteCount")
+                        .HasColumnType("int");
+
                     b.Property<string>("ImagePath")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");

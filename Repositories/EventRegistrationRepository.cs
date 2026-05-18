@@ -23,5 +23,19 @@ namespace Eventra.Repositories
         {
             return QueryWithEvent().Where(r => r.UserId == userId);
         }
+
+        public IQueryable<EventRegistration> QueryByEventWithUserAndCheckIns(int eventId)
+        {
+            return _context.EventRegistrations
+                .Include(r => r.User)
+                .Include(r => r.EventCheckIns)
+                .Where(r => r.EventId == eventId);
+        }
+
+        public bool IsRegisteredForEvent(int userId, int eventId)
+        {
+            return _context.EventRegistrations
+                .Any(r => r.UserId == userId && r.EventId == eventId && r.Status != "Cancelled");
+        }
     }
 }

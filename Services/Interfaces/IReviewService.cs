@@ -8,7 +8,8 @@ namespace Eventra.Services.Interfaces
         SubmitReviewViewModel CreateReviewViewModel(int eventId);
         SubmitReviewViewModel? GetReviewEditViewModel(int eventId, int userId);
         Event? GetEventForReview(int eventId);
-        void SubmitReview(SubmitReviewViewModel vm, int userId);
+        bool IsRegisteredForEvent(int userId, int eventId);
+        string SubmitReview(SubmitReviewViewModel vm, int userId);
         List<Review> GetLatestReviews(int count);
         List<Review> GetOrganizerReviews(int organizerId);
     }

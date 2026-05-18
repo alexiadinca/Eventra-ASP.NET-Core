@@ -9,9 +9,8 @@ namespace Eventra.Services
     {
         private static readonly HashSet<string> BadWords = new(StringComparer.OrdinalIgnoreCase)
         {
-            "fuck", "shit", "ass", "bitch", "bastard", "crap", "cock", "dick",
-            "pussy", "cunt", "whore", "slut", "faggot", "nigger", "pula", "pizda",
-            "cacat", "muie", "futut", "dracu", "curva", "labă", "laba", "pulă"
+            "fuck", "shit", "bastard", "crap", "dumb", "stupid", "asshole",
+            "cacat", "muie", "dracu", "prost", "proasta", "tampit", "idiot", "morti"
         };
 
         private static bool ContainsBadWords(string? text) =>
@@ -20,11 +19,13 @@ namespace Eventra.Services
 
         private readonly IReviewRepository _reviewRepository;
         private readonly IEventRepository _eventRepository;
+        private readonly IEventRegistrationRepository _registrationRepository;
 
-        public ReviewService(IReviewRepository reviewRepository, IEventRepository eventRepository)
+        public ReviewService(IReviewRepository reviewRepository, IEventRepository eventRepository, IEventRegistrationRepository registrationRepository)
         {
             _reviewRepository = reviewRepository;
             _eventRepository = eventRepository;
+            _registrationRepository = registrationRepository;
         }
 
         public SubmitReviewViewModel CreateReviewViewModel(int eventId)
@@ -58,31 +59,37 @@ namespace Eventra.Services
             return _eventRepository.QueryWithDetails().FirstOrDefault(e => e.Id == eventId);
         }
 
-        public void SubmitReview(SubmitReviewViewModel vm, int userId)
+        public bool IsRegisteredForEvent(int userId, int eventId)
         {
+            return _registrationRepository.IsRegisteredForEvent(userId, eventId);
+        }
+
+        public string SubmitReview(SubmitReviewViewModel vm, int userId)
+        {
+            if (!_registrationRepository.IsRegisteredForEvent(userId, vm.EventId))
+                return "NotRegistered";
+
             var ev = _eventRepository.GetById(vm.EventId);
             if (ev == null)
-            {
-                throw new InvalidOperationException("Event not found.");
-            }
+                return "EventNotFound";
+
+            bool flagged = ContainsBadWords(vm.Comment);
 
             if (vm.ReviewId.HasValue)
             {
                 var existing = _reviewRepository.GetById(vm.ReviewId.Value);
                 if (existing == null || existing.UserId != userId)
-                {
-                    throw new InvalidOperationException("Review not found.");
-                }
+                    return "NotFound";
 
                 existing.Rating = vm.Rating;
                 existing.Comment = vm.Comment;
                 existing.CreatedAt = DateTime.UtcNow;
-                existing.IsApproved = false;
-                existing.IsFlagged = ContainsBadWords(vm.Comment);
+                existing.IsFlagged = flagged;
+                existing.IsApproved = !flagged;
 
                 _reviewRepository.Update(existing);
                 _reviewRepository.Save();
-                return;
+                return "Success";
             }
 
             var existingReview = _reviewRepository.QueryWithUser().FirstOrDefault(r => r.EventId == vm.EventId && r.UserId == userId);
@@ -91,14 +98,13 @@ namespace Eventra.Services
                 existingReview.Rating = vm.Rating;
                 existingReview.Comment = vm.Comment;
                 existingReview.CreatedAt = DateTime.UtcNow;
-                existingReview.IsApproved = false;
-                existingReview.IsFlagged = ContainsBadWords(vm.Comment);
+                existingReview.IsFlagged = flagged;
+                existingReview.IsApproved = !flagged;
                 _reviewRepository.Update(existingReview);
                 _reviewRepository.Save();
-                return;
+                return "Success";
             }
 
-            bool flagged = ContainsBadWords(vm.Comment);
             var review = new Review
             {
                 UserId = userId,
@@ -107,12 +113,13 @@ namespace Eventra.Services
                 Rating = vm.Rating,
                 Comment = vm.Comment,
                 CreatedAt = DateTime.UtcNow,
-                IsApproved = false,
-                IsFlagged = flagged
+                IsFlagged = flagged,
+                IsApproved = !flagged
             };
 
             _reviewRepository.Add(review);
             _reviewRepository.Save();
+            return "Success";
         }
 
         public List<Review> GetLatestReviews(int count)

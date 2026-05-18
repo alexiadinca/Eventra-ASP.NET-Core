@@ -3,6 +3,7 @@ using Eventra.Repositories.Interfaces;
 using Eventra.Services;
 using Eventra.Services.Interfaces;
 
+
 namespace Eventra.Extensions
 {
     public static class ServiceCollectionExtensions
@@ -17,6 +18,8 @@ namespace Eventra.Extensions
             services.AddScoped<IEventRegistrationRepository, EventRegistrationRepository>();
             services.AddScoped<IWaitingListRepository, WaitingListRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
+            services.AddScoped<IEventCheckInRepository, EventCheckInRepository>();
+            services.AddScoped<IFavoriteRepository, FavoriteRepository>();
             return services;
         }
 
@@ -28,6 +31,7 @@ namespace Eventra.Extensions
             services.AddScoped<IProfileService, ProfileService>();
             services.AddScoped<IHomeService, HomeService>();
             services.AddScoped<IAdminService, AdminService>();
+            services.AddScoped<IQrCodeService, QrCodeService>();
             return services;
         }
 

@@ -4,6 +4,7 @@ using Eventra.Repositories.Interfaces;
 using Eventra.Services.Interfaces;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace Eventra.Services
 {
@@ -18,6 +19,8 @@ namespace Eventra.Services
         private readonly IWebHostEnvironment _environment;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INotificationService _notificationService;
+        private readonly IEventCheckInRepository _eventCheckInRepository;
+        private readonly IFavoriteRepository _favoriteRepository;
 
         public EventService(
             IEventRepository eventRepository,
@@ -28,7 +31,9 @@ namespace Eventra.Services
             IUserRepository userRepository,
             IHttpContextAccessor httpContextAccessor,
             IWebHostEnvironment environment,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IEventCheckInRepository eventCheckInRepository,
+            IFavoriteRepository favoriteRepository)
         {
             _eventRepository = eventRepository;
             _categoryRepository = categoryRepository;
@@ -39,6 +44,8 @@ namespace Eventra.Services
             _environment = environment;
             _httpContextAccessor = httpContextAccessor;
             _notificationService = notificationService;
+            _eventCheckInRepository = eventCheckInRepository;
+            _favoriteRepository = favoriteRepository;
         }
 
         public List<Event> GetEvents(int? categoryId, string? city, string? search, string? filter)
@@ -91,6 +98,9 @@ namespace Eventra.Services
                 }
             }
 
+            if (filter == "MostPopular")
+                return query.OrderByDescending(e => e.Capacity - e.AvailableSeats).ToList();
+
             return query.OrderBy(e => e.EventDate).ToList();
         }
 
@@ -117,17 +127,41 @@ namespace Eventra.Services
                 .Take(6)
                 .ToList();
 
+            var uid = _httpContextAccessor.HttpContext?.Session.GetInt32("UserId");
+            EventRegistration? myReg = null;
+            WaitingListEntry? myWaiting = null;
+            bool hasReviewed = false;
+            bool isFavorited = false;
+
+            if (uid.HasValue)
+            {
+                myReg = _eventRegistrationRepository.QueryByUserWithEvent(uid.Value)
+                    .FirstOrDefault(r => r.EventId == id);
+                myWaiting = _waitingListRepository.QueryByUserWithEvent(uid.Value)
+                    .FirstOrDefault(w => w.EventId == id);
+                hasReviewed = _reviewRepository.QueryWithUser()
+                    .Any(r => r.EventId == id && r.UserId == uid.Value);
+                isFavorited = _favoriteRepository.IsFavorited(id, uid.Value);
+            }
+
             return new EventDetailsViewModel
             {
                 Event = ev,
                 SimilarEvents = similarEvents,
                 OrganizerReviews = organizerReviews,
-                IsLoggedIn = _httpContextAccessor.HttpContext?.Session.GetInt32("UserId").HasValue == true,
-                IsOrganizerOwner = _httpContextAccessor.HttpContext?.Session.GetInt32("UserId") == ev.OrganizerId,
-                HasRegistered = _httpContextAccessor.HttpContext?.Session.GetInt32("UserId") is int uid && _eventRegistrationRepository.QueryByUserWithEvent(uid).Any(r => r.EventId == id),
-                HasReviewed = _httpContextAccessor.HttpContext?.Session.GetInt32("UserId") is int reviewerId && _reviewRepository.QueryWithUser().Any(r => r.EventId == id && r.UserId == reviewerId),
-                IsPastEvent = ev.EventDate.Date < DateTime.Today,
-                HasAvailableSeats = ev.AvailableSeats > 0
+                IsLoggedIn = uid.HasValue,
+                IsOrganizerOwner = uid.HasValue && uid.Value == ev.OrganizerId,
+                HasRegistered = myReg != null,
+                RegistrationId = myReg?.Id,
+                HasReviewed = hasReviewed,
+                IsPastEvent = ev.EventDate.Date + ev.StartTime < DateTime.Now,
+                HasAvailableSeats = ev.AvailableSeats > 0,
+                IsOnWaitingList = myWaiting != null,
+                WaitingListPosition = myWaiting?.Position,
+                WaitingListEntryId = myWaiting?.Id,
+                IsFavorited = isFavorited,
+                FavoriteCount = ev.FavoriteCount,
+                IsAdmin = _httpContextAccessor.HttpContext?.Session.GetString("Role") == "Admin",
             };
         }
 
@@ -302,7 +336,7 @@ namespace Eventra.Services
                 return "OrganizerOwner";
             }
 
-            if (ev.EventDate.Date < DateTime.Today)
+            if (ev.EventDate.Date + ev.StartTime < DateTime.Now)
             {
                 return "PastEvent";
             }
@@ -348,10 +382,211 @@ namespace Eventra.Services
 
             _waitingListRepository.Add(waiting);
             _waitingListRepository.Save();
+
+            if (!_notificationService.Exists(userId, eventId, "WaitingListJoined"))
+            {
+                _notificationService.Create(
+                    userId,
+                    "Added to Waiting List",
+                    $"You are #{waiting.Position} on the waiting list for \"{ev.Title}\".",
+                    "WaitingListJoined",
+                    eventId);
+            }
+
             return "WaitingList";
+        }
+
+        public void CancelRegistration(int registrationId, int userId)
+        {
+            var registration = _eventRegistrationRepository.QueryWithEvent()
+                .FirstOrDefault(r => r.Id == registrationId && r.UserId == userId);
+
+            if (registration == null)
+                throw new InvalidOperationException("Registration not found.");
+
+            if (registration.Event.EventDate.Date < DateTime.Today)
+                throw new InvalidOperationException("Cannot cancel a past event registration.");
+
+            var eventId = registration.EventId;
+            var ev = registration.Event;
+
+            _eventRegistrationRepository.Remove(registration);
+            _eventRegistrationRepository.Save();
+
+            var firstWaiting = _waitingListRepository.QueryWithEvent()
+                .Where(w => w.EventId == eventId)
+                .OrderBy(w => w.Position)
+                .FirstOrDefault();
+
+            if (firstWaiting != null)
+            {
+                var promotedUserId = firstWaiting.UserId;
+
+                _waitingListRepository.Remove(firstWaiting);
+                _waitingListRepository.Save();
+
+                _eventRegistrationRepository.Add(new EventRegistration
+                {
+                    UserId = promotedUserId,
+                    EventId = eventId,
+                    RegisteredAt = DateTime.UtcNow,
+                    Status = "Registered",
+                    QrToken = Guid.NewGuid().ToString()
+                });
+                _eventRegistrationRepository.Save();
+
+                var remaining = _waitingListRepository.QueryWithEvent()
+                    .Where(w => w.EventId == eventId)
+                    .OrderBy(w => w.Position)
+                    .ToList();
+
+                for (int i = 0; i < remaining.Count; i++)
+                {
+                    remaining[i].Position = i + 1;
+                    _waitingListRepository.Update(remaining[i]);
+                }
+                _waitingListRepository.Save();
+
+                _notificationService.Create(
+                    promotedUserId,
+                    "You got a spot!",
+                    $"A spot opened up for \"{ev.Title}\" and you have been registered from the waiting list.",
+                    "WaitingListPromotion",
+                    eventId);
+            }
+            else
+            {
+                ev.AvailableSeats++;
+                _eventRepository.Update(ev);
+                _eventRepository.Save();
+            }
+        }
+
+        public void CancelWaitingList(int entryId, int userId)
+        {
+            var entry = _waitingListRepository.QueryWithEvent()
+                .FirstOrDefault(w => w.Id == entryId && w.UserId == userId);
+
+            if (entry == null)
+                throw new InvalidOperationException("Waiting list entry not found.");
+
+            var eventId = entry.EventId;
+            var removedPosition = entry.Position;
+
+            _waitingListRepository.Remove(entry);
+            _waitingListRepository.Save();
+
+            var remaining = _waitingListRepository.QueryWithEvent()
+                .Where(w => w.EventId == eventId && w.Position > removedPosition)
+                .OrderBy(w => w.Position)
+                .ToList();
+
+            foreach (var w in remaining)
+            {
+                w.Position--;
+                _waitingListRepository.Update(w);
+            }
+            _waitingListRepository.Save();
         }
 
         public User? GetOrganizerUser(int userId) =>
             _userRepository.GetById(userId);
+
+        public (string result, string? attendeeName, int? attendeeUserId) ProcessCheckIn(int eventId, int organizerId, string qrToken)
+        {
+            var ev = _eventRepository.QueryByOrganizer(organizerId).FirstOrDefault(e => e.Id == eventId);
+            if (ev == null)
+                return ("NotYourEvent", null, null);
+
+            int userId;
+            var match = System.Text.RegularExpressions.Regex.Match(qrToken, @"/Profile/View/(\d+)");
+            if (match.Success)
+            {
+                if (!int.TryParse(match.Groups[1].Value, out userId))
+                    return ("InvalidToken", null, null);
+            }
+            else
+            {
+                return ("InvalidToken", null, null);
+            }
+
+            var registration = _eventRegistrationRepository
+                .QueryByEventWithUserAndCheckIns(eventId)
+                .FirstOrDefault(r => r.UserId == userId);
+
+            if (registration == null)
+                return ("NotRegistered", null, userId);
+
+            var attendeeName = $"{registration.User.FirstName} {registration.User.LastName}";
+
+            if (registration.CheckedInAt.HasValue || registration.EventCheckIns.Any())
+                return ("AlreadyCheckedIn", attendeeName, userId);
+
+            _eventCheckInRepository.Add(new EventCheckIn
+            {
+                EventRegistrationId = registration.Id,
+                ScannedByOrganizerId = organizerId,
+                ScannedAt = DateTime.UtcNow,
+                Result = "Valid"
+            });
+            _eventCheckInRepository.Save();
+
+            registration.CheckedInAt = DateTime.UtcNow;
+            _eventRegistrationRepository.Update(registration);
+            _eventRegistrationRepository.Save();
+
+            return ("Valid", attendeeName, userId);
+        }
+
+        public List<EventCheckIn> GetCheckInsForEvent(int eventId)
+        {
+            return _eventCheckInRepository
+                .QueryByEventWithAttendee(eventId)
+                .ToList();
+        }
+
+        public string ToggleFavorite(int eventId, int userId)
+        {
+            var ev = _eventRepository.GetById(eventId);
+            if (ev == null) return "NotFound";
+
+            var existing = _favoriteRepository.GetByUserAndEvent(userId, eventId);
+            if (existing != null)
+            {
+                _favoriteRepository.Remove(existing);
+                _favoriteRepository.Save();
+                ev.FavoriteCount = Math.Max(0, ev.FavoriteCount - 1);
+                _eventRepository.Update(ev);
+                _eventRepository.Save();
+                return "Removed";
+            }
+
+            _favoriteRepository.Add(new Favorite
+            {
+                UserId = userId,
+                EventId = eventId,
+                CreatedAt = DateTime.UtcNow
+            });
+            _favoriteRepository.Save();
+            ev.FavoriteCount++;
+            _eventRepository.Update(ev);
+            _eventRepository.Save();
+            return "Added";
+        }
+
+        public HashSet<int> GetFavoriteEventIds(int userId)
+        {
+            return _favoriteRepository.Query()
+                .Where(f => f.UserId == userId)
+                .Select(f => f.EventId)
+                .ToHashSet();
+        }
+
+        public Dictionary<int, int> GetFavoriteCounts(List<int> eventIds)
+        {
+            return _eventRepository.Query()
+                .Where(e => eventIds.Contains(e.Id))
+                .ToDictionary(e => e.Id, e => e.FavoriteCount);
+        }
     }
 }

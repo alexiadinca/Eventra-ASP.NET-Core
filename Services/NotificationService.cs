@@ -51,5 +51,10 @@ namespace Eventra.Services
                 _repo.Remove(n);
             _repo.Save();
         }
+
+        public void DeleteReviewReminder(int userId, int eventId)
+        {
+            _repo.DeleteByEventAndType(userId, eventId, "ReviewReminder");
+        }
     }
 }

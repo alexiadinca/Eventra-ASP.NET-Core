@@ -9,5 +9,6 @@ namespace Eventra.Repositories.Interfaces
         IQueryable<Review> QueryByOrganizer(int organizerId);
         IQueryable<Review> QueryByOrganizerWithUser(int organizerId);
         IQueryable<Review> QueryByOrganizerOrEventsWithUser(int organizerId);
+        IQueryable<Review> QueryByUserWithEvent(int userId);
     }
 }

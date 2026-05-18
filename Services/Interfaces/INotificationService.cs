@@ -9,5 +9,6 @@ namespace Eventra.Services.Interfaces
         List<Notification> GetForUser(int userId);
         void Delete(int notificationId, int currentUserId);
         void DeleteAll(int currentUserId);
+        void DeleteReviewReminder(int userId, int eventId);
     }
 }

@@ -47,6 +47,8 @@ namespace Eventra.Models
 
         public bool IsFreeEntry { get; set; }
 
+        public int FavoriteCount { get; set; }
+
         [StringLength(255)]
         public string? ImagePath { get; set; }
 

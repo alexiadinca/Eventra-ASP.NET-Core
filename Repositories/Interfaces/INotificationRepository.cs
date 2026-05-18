@@ -6,5 +6,6 @@ namespace Eventra.Repositories.Interfaces
     {
         IQueryable<Notification> QueryByUser(int userId);
         bool Exists(int userId, int relatedEventId, string type);
+        void DeleteByEventAndType(int userId, int relatedEventId, string type);
     }
 }

@@ -448,6 +448,43 @@ body {
   margin-top: 34px;
 }
 
+/* ── FAVORITES ─────────────────────────────────────── */
+
+.fav-action {
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid #e0d4d8;
+}
+
+.fav-count-text {
+    color: var(--primary);
+    font-size: 0.92rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.fav-detail-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 11px 22px;
+    border-radius: 999px;
+    border: 1.8px solid var(--primary);
+    background: transparent;
+    color: var(--primary);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.fav-detail-btn:hover,
+.fav-detail-btn.active {
+    background: var(--primary);
+    color: #fff;
+}
+
 .organizer-actions {
   display: flex;
   flex-wrap: wrap;

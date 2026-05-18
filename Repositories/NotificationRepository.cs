@@ -23,5 +23,14 @@ namespace Eventra.Repositories
                 n.UserId == userId &&
                 n.RelatedEventId == relatedEventId &&
                 n.Type == type);
+
+        public void DeleteByEventAndType(int userId, int relatedEventId, string type)
+        {
+            var matches = _context.Notifications
+                .Where(n => n.UserId == userId && n.RelatedEventId == relatedEventId && n.Type == type)
+                .ToList();
+            _context.Notifications.RemoveRange(matches);
+            _context.SaveChanges();
+        }
     }
 }

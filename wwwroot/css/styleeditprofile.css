@@ -198,6 +198,28 @@ input {
   box-shadow: 0 0 0 4px rgba(95, 74, 86, 0.10);
 }
 
+.photo-upload-group {
+  margin-top: 6px;
+}
+
+.photo-preview {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  border: 2px solid var(--primary);
+  margin-bottom: 10px;
+  display: block;
+}
+
+.photo-hint {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  margin-top: 6px;
+  display: block;
+}
+
 .form-actions {
   display: flex;
   gap: 14px;
