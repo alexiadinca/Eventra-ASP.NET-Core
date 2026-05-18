@@ -452,7 +452,7 @@ namespace Eventra.Data
                     Description = "Join us for a stylish summer brunch party at Mayfair 39, in the heart of Bucharest. Enjoy fluffy, famous pancakes served with delicious toppings, alongside creamy lattes and refreshing iced matcha lattes. Expect a cozy summer atmosphere with elegant décor, good music, cute drinks, and a relaxed brunch setting perfect for friends, photos, and sunny weekend vibes. Entrance is free and guests only pay for what they order. A minimum spend of 150 RON per table applies.",
                     EventDate = new DateTime(2026, 7, 17), StartTime = new TimeSpan(11, 0, 0), EndTime = new TimeSpan(16, 0, 0),
                     City = "Bucharest", Location = "Mayfair 39", AddressLine = "Calea Victoriei 39, Bucharest",
-                    Capacity = 60, AvailableSeats = 60, Price = 0, Currency = "RON", IsFreeEntry = true,
+                    Capacity = 60, AvailableSeats = 3, Price = 0, Currency = "RON", IsFreeEntry = true,
                     ImagePath = "/images/SummerBrunchPartyMayfair.png", OrganizerDisplayName = "Mayfair 39",
                     SupportEmail = "mayfair@gmail.com", SupportPhone = "0701234567",
                     CategoryId = food?.Id ?? 0, OrganizerId = mayfair39.Id,
@@ -695,6 +695,7 @@ namespace Eventra.Data
             // Set denormalized FavoriteCount on each event 
             var eventCounts = new Dictionary<string, int>
             {
+                ["Summer Brunch Party"]         = 158,
                 ["Wine and Cheese Night"]       = 126,
                 ["Spring Festival"]             = 56,
                 ["Garden Party"]                = 52,
